@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "smartdesk-ai"
+version = "0.1.0"
+description = "SmartDesk AI: an IT & HR help desk agent (RAG, Jira tickets, HITL approval)."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "langgraph>=1.2,<2",
+    "langchain-core>=1.7,<2",
+    "langchain-openai>=1.7,<2",
+    "langfuse>=5.1,<6",
+    "pydantic>=2.14,<3",
+    "pydantic-settings>=2.16,<3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=9.2,<10"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = [
+    "openai_live: calls the real OpenAI API (skipped unless OPENAI_API_KEY is set and SMARTDESK_LIVE_TESTS=1)",
+    "jira_live: calls the real Jira Cloud API (skipped unless Jira credentials are configured)",
+]

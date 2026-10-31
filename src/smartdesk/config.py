@@ -1,0 +1,51 @@
+"""Environment-based configuration.
+
+All settings come from environment variables (or a local `.env` file).
+Secrets are held as `SecretStr` so they never appear in reprs or logs.
+"""
+
+from functools import lru_cache
+
+from pydantic import Field, SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    # OpenAI
+    openai_api_key: SecretStr = Field(validation_alias="OPENAI_API_KEY")
+    llm_model: str = Field(default="gpt-4o-mini", validation_alias="SMARTDESK_LLM_MODEL")
+    embedding_model: str = Field(
+        default="text-embedding-3-small", validation_alias="SMARTDESK_EMBEDDING_MODEL"
+    )
+    llm_temperature: float = Field(
+        default=0.0, ge=0.0, le=2.0, validation_alias="SMARTDESK_LLM_TEMPERATURE"
+    )
+    llm_timeout_seconds: float = Field(
+        default=30.0, gt=0, validation_alias="SMARTDESK_LLM_TIMEOUT_SECONDS"
+    )
+    llm_max_retries: int = Field(default=2, ge=0, le=10, validation_alias="SMARTDESK_LLM_MAX_RETRIES")
+
+    # Langfuse (optional)
+    langfuse_public_key: str | None = Field(default=None, validation_alias="LANGFUSE_PUBLIC_KEY")
+    langfuse_secret_key: SecretStr | None = Field(default=None, validation_alias="LANGFUSE_SECRET_KEY")
+    langfuse_host: str = Field(default="https://cloud.langfuse.com", validation_alias="LANGFUSE_HOST")
+
+    @property
+    def langfuse_enabled(self) -> bool:
+        return bool(
+            self.langfuse_public_key
+            and self.langfuse_secret_key
+            and self.langfuse_secret_key.get_secret_value()
+        )
+
+
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    """Load settings once per process."""
+    return Settings()  # type: ignore[call-arg]  # fields are populated from the environment

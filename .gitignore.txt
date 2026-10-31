@@ -1,0 +1,6 @@
+.env
+docs/capstone-spec.pdf
+.venv/
+__pycache__/
+chroma/
+*.db

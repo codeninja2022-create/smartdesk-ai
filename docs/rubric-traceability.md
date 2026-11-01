@@ -10,7 +10,7 @@ Applied Agentic AI Program) to where it is implemented and how it is verified.
 - **Evidence** points to code, tests and docs once they exist.
 - **Status:** ✅ done · 🟡 partial / foundation only · ⬜ not started.
 
-Last updated: Milestone 3.
+Last updated: Milestone 4.
 
 ---
 
@@ -30,18 +30,18 @@ Last updated: Milestone 3.
 
 | ID | Sub-criterion (verbatim) | Marks | Spec requirement | Milestone | Evidence | Status |
 |---|---|---|---|---|---|---|
-| B1 | Successful external API integration | 5 | FR-4.1 | M4 | Jira service + `jira_live` tests | ⬜ |
+| B1 | Successful external API integration | 5 | FR-4.1 | M4 | Jira Cloud REST v3 service `src/smartdesk/tickets/`; `tests/test_live_jira.py` (create, idempotent re-submit, lookup, ownership; passes against project KAN); mocked `tests/test_tickets_*.py` | ✅ |
 | B2 | All mandatory fields collected | 5 | FR-4.2 | M5 | ticket-flow tests | ⬜ |
 | B3 | Human-in-the-loop confirmation | 5 | FR-4.3 | M5 | `interrupt()` approval tests | ⬜ |
-| B4 | Post-creation feedback with ticket ID/link | 5 | FR-4.4 | M4, M5 | ticket-flow tests, demo | ⬜ |
+| B4 | Post-creation feedback with ticket ID/link | 5 | FR-4.4 | M4, M5 | `create_ticket` returns the real key and `/browse/KEY` URL (`test_create_ticket_returns_real_key_and_url`, live test); chat confirmation in M5 | 🟡 |
 
 ### C. Ticket Status Check (Read Operation) — 15 marks
 
 | ID | Sub-criterion (verbatim) | Marks | Spec requirement | Milestone | Evidence | Status |
 |---|---|---|---|---|---|---|
-| C1 | Status retrieval via API | 5 | FR-5.1 – FR-5.4 | M4 | Jira service tests | ⬜ |
-| C2 | Multiple-ticket handling (listing & selection) | 5 | FR-5.5 | M4, M5 | multi-ticket tests | ⬜ |
-| C3 | Graceful handling when no tickets found | 5 | FR-5.6 | M4, M5 | no-ticket tests | ⬜ |
+| C1 | Status retrieval via API | 5 | FR-5.1 – FR-5.4 | M4 | `get_ticket` returns status, status category and support comments (`test_get_ticket_returns_status_and_comments`, live test); conversational flow in M5 | 🟡 |
+| C2 | Multiple-ticket handling (listing & selection) | 5 | FR-5.5 | M4, M5 | `list_tickets` returns all of an employee's tickets, newest update first (`test_multiple_tickets_are_listed_newest_update_first`); selection in M5 | 🟡 |
+| C3 | Graceful handling when no tickets found | 5 | FR-5.6 | M4, M5 | `list_tickets` returns `[]`, `get_ticket` returns `None` for missing or foreign keys (`test_no_tickets_returns_empty_list`, `test_get_ticket_hides_other_employees_tickets`); chat wording in M5 | 🟡 |
 
 ### D. Agent Orchestration & Routing — 15 marks
 
@@ -112,10 +112,10 @@ Last updated: Milestone 3.
 
 | ID | Requirement (verbatim) | Milestone | Status |
 |---|---|---|---|
-| FR-4.1 | "When the agent cannot resolve a query from the knowledge base, it must offer to create a support ticket on an external project-management platform." — **Chosen: Jira Cloud REST API.** | M4, M5 | ⬜ |
+| FR-4.1 | "When the agent cannot resolve a query from the knowledge base, it must offer to create a support ticket on an external project-management platform." — **Chosen: Jira Cloud REST API.** | M4, M5 | 🟡 Jira service done (`src/smartdesk/tickets/`); offering a ticket after escalation in M5 |
 | FR-4.2 | §2.2.1 "Before the agent creates a ticket, it must collect at minimum the following": **Employee Email** — "A unique identifier to link the ticket to the employee. The agent should ask for this explicitly if not already known." (Mandatory); **Issue Summary** — "A short, one-line title for the ticket" (Mandatory); **Issue Description** — "A detailed description. The agent should summarise the conversation so far. The employee should be able to add more details." (Mandatory); **Category / Label** — "Whether the issue falls under IT or HR. The agent should infer this from the conversation." (Recommended); **Priority** — "Low, Medium, High, or Critical. The agent may infer this or ask the employee." (Optional) | M5 | ⬜ |
 | FR-4.3 | §2.2.2 "Before submitting the ticket, the agent must present a summary to the employee and ask for explicit confirmation. … This is a mandatory requirement — the agent must not create tickets silently." | M5 | ⬜ |
-| FR-4.4 | §2.2.3 "After the ticket is successfully created, the agent must confirm this to the employee and provide the ticket ID or a link so that the employee can track it independently." | M4, M5 | ⬜ |
+| FR-4.4 | §2.2.3 "After the ticket is successfully created, the agent must confirm this to the employee and provide the ticket ID or a link so that the employee can track it independently." | M4, M5 | 🟡 key + URL returned by `create_ticket`; shown to the employee in M5 |
 
 ### FR-5 Ticket status check (§2.3)
 
@@ -123,10 +123,10 @@ Last updated: Milestone 3.
 |---|---|---|---|
 | FR-5.1 | "An employee must be able to ask the agent about the status of a previously raised ticket." e.g. "What is the status of my ticket?" or "Did anyone look at my VPN issue?" | M5 | ⬜ |
 | FR-5.2 | "The agent asks for the employee's email address (if not already known in the current session) to look up their tickets." | M5 | ⬜ |
-| FR-5.3 | "The agent queries the external platform (Jira / Asana / Notion) using the API to fetch tickets associated with that email." | M4 | ⬜ |
-| FR-5.4 | "The agent presents the status (e.g., Open, In Progress, Resolved, Closed) along with any comments or updates from the support team." | M4, M5 | ⬜ |
-| FR-5.5 | "If the employee has multiple open tickets, the agent should list them briefly and let the employee choose which one they want details on." | M4, M5 | ⬜ |
-| FR-5.6 | "If no tickets are found, the agent should say so clearly." | M4, M5 | ⬜ |
+| FR-5.3 | "The agent queries the external platform (Jira / Asana / Notion) using the API to fetch tickets associated with that email." | M4 | ✅ `list_tickets`: Jira search on the `sd-emp-` label ∪ SQLite mapping |
+| FR-5.4 | "The agent presents the status (e.g., Open, In Progress, Resolved, Closed) along with any comments or updates from the support team." | M4, M5 | 🟡 `get_ticket` returns status and comments; presentation in M5 |
+| FR-5.5 | "If the employee has multiple open tickets, the agent should list them briefly and let the employee choose which one they want details on." | M4, M5 | 🟡 listing done; choice in M5 |
+| FR-5.6 | "If no tickets are found, the agent should say so clearly." | M4, M5 | 🟡 empty result handled; wording in M5 |
 
 ---
 
@@ -178,12 +178,12 @@ Last updated: Milestone 3.
 |---|---|---|
 | Q2 | "Document the model name and hardware requirements in your README." | README lists `gpt-4o-mini` / `text-embedding-3-small` (hosted; no local hardware needs). |
 | Q4 | "A minimum of 30. Quality and diversity matter more than quantity. Cover both IT and HR." | M2 target: 30–50 documents. |
-| Q7 | "Mock the API calls … You'll receive partial marks but not full marks for live integration." | Live Jira integration is the plan; mocks only in unit tests. |
+| Q7 | "Mock the API calls … You'll receive partial marks but not full marks for live integration." | Live Jira integration (`tests/test_live_jira.py`); mocks only in unit tests (`tests/jira_fake.py`). |
 | Q11 | "The evaluator will ask KB questions and non-KB questions. For non-KB questions, the agent must say it doesn't know or offer a ticket. Making up information loses marks." | Abstention + escalation (M3), gap questions in eval set (M2/M7). |
-| Q13 | "Maintain a local mapping (JSON or SQLite) from email to ticket IDs. Save on creation, look up on status check." | SQLite ticket mapping (M4). |
+| Q13 | "Maintain a local mapping (JSON or SQLite) from email to ticket IDs. Save on creation, look up on status check." | SQLite `employee_tickets` (`src/smartdesk/tickets/store.py`), saved on creation, read on lookup (M4). |
 | Q15 | "Consistently wrong routing affects your Orchestration & Routing score." | Live routing tests (`tests/test_live_openai.py`), eval set (M7). |
 | Q16 | "Multi-turn support is required and evaluated under Session & Context Management." | SQLite checkpoints + session email lock (M5). |
-| Q17 | "Creating tickets manually to test the status-check feature is expected." | Pre-populated Jira test tickets (M4). |
+| Q17 | "Creating tickets manually to test the status-check feature is expected." | Test tickets are created with `python -m smartdesk.tickets create` so they carry lookup labels; the support agent only updates them in Jira (`docs/demo-script.md`). |
 | Q19 | "The agent identifies employees by email provided in conversation." | Email is a demo identifier, not authentication (documented, M5). |
 
 ---

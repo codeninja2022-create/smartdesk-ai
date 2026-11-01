@@ -10,12 +10,12 @@ from smartdesk.graph.state import Intent, IntentClassification
 from smartdesk.rag.answer import GroundedAnswer
 from smartdesk.rag.retriever import RetrievedChunk
 
-_SMARTDESK_ENV_PREFIXES = ("OPENAI_", "SMARTDESK_", "LANGFUSE_")
+_SMARTDESK_ENV_PREFIXES = ("OPENAI_", "SMARTDESK_", "LANGFUSE_", "JIRA_")
 
 
 @pytest.fixture
 def clean_env(monkeypatch: pytest.MonkeyPatch) -> Iterator[pytest.MonkeyPatch]:
-    """Remove any real SmartDesk/OpenAI/Langfuse variables from the environment."""
+    """Remove any real SmartDesk/OpenAI/Langfuse/Jira variables from the environment."""
     for name in list(os.environ):
         if name.startswith(_SMARTDESK_ENV_PREFIXES):
             monkeypatch.delenv(name)
@@ -103,9 +103,24 @@ class FakeRetriever:
         return list(self.chunks)
 
 
+def _jira_configured() -> bool:
+    try:
+        return Settings().jira_configured  # type: ignore[call-arg]  # reads the real .env
+    except ValueError:  # e.g. OPENAI_API_KEY missing
+        return False
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    live_openai = os.getenv("SMARTDESK_LIVE_TESTS") == "1"
+    live = os.getenv("SMARTDESK_LIVE_TESTS") == "1"
     skip_openai = pytest.mark.skip(reason="set SMARTDESK_LIVE_TESTS=1 to call the real OpenAI API")
+    if not live:
+        skip_jira = pytest.mark.skip(reason="set SMARTDESK_LIVE_TESTS=1 (and JIRA_* credentials) to call real Jira")
+    elif not _jira_configured():
+        skip_jira = pytest.mark.skip(reason="Jira credentials are not configured (JIRA_* in .env)")
+    else:
+        skip_jira = None
     for item in items:
-        if "openai_live" in item.keywords and not live_openai:
+        if "openai_live" in item.keywords and not live:
             item.add_marker(skip_openai)
+        if "jira_live" in item.keywords and skip_jira is not None:
+            item.add_marker(skip_jira)

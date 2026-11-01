@@ -53,6 +53,34 @@ class Settings(BaseSettings):
         default=0.35, ge=0.0, le=1.0, validation_alias="SMARTDESK_RAG_MIN_SIMILARITY"
     )
 
+    # Jira Cloud. All four connection values are required for ticket operations.
+    jira_base_url: str | None = Field(default=None, validation_alias="JIRA_BASE_URL")
+    jira_email: str | None = Field(default=None, validation_alias="JIRA_EMAIL")
+    jira_api_token: SecretStr | None = Field(default=None, validation_alias="JIRA_API_TOKEN")
+    jira_project_key: str | None = Field(default=None, validation_alias="JIRA_PROJECT_KEY")
+    jira_issue_type: str = Field(default="Task", validation_alias="JIRA_ISSUE_TYPE")
+    jira_timeout_seconds: float = Field(default=10.0, gt=0, validation_alias="JIRA_TIMEOUT_SECONDS")
+    jira_max_retries: int = Field(default=2, ge=0, le=10, validation_alias="JIRA_MAX_RETRIES")  # reads only
+    jira_max_create_attempts: int = Field(default=2, ge=1, le=5, validation_alias="JIRA_MAX_CREATE_ATTEMPTS")
+    # Jira search is eventually consistent: a just-created issue can be missing for a few seconds.
+    jira_reconcile_polls: int = Field(default=3, ge=1, le=10, validation_alias="JIRA_RECONCILE_POLLS")
+    jira_reconcile_delay_seconds: float = Field(
+        default=2.0, ge=0, validation_alias="JIRA_RECONCILE_DELAY_SECONDS"
+    )
+
+    # SQLite: ticket mappings and idempotency ops (M4), checkpoints (M5)
+    db_path: Path = Field(default=Path("data/smartdesk.db"), validation_alias="SMARTDESK_DB_PATH")
+
+    @property
+    def jira_configured(self) -> bool:
+        return bool(
+            self.jira_base_url
+            and self.jira_email
+            and self.jira_project_key
+            and self.jira_api_token
+            and self.jira_api_token.get_secret_value()
+        )
+
     @property
     def langfuse_enabled(self) -> bool:
         return bool(

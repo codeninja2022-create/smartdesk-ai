@@ -32,5 +32,5 @@ testpaths = ["tests"]
 addopts = "-ra"
 markers = [
     "openai_live: calls the real OpenAI API (skipped unless OPENAI_API_KEY is set and SMARTDESK_LIVE_TESTS=1)",
-    "jira_live: calls the real Jira Cloud API (skipped unless Jira credentials are configured)",
+    "jira_live: calls the real Jira Cloud API (skipped unless JIRA_* credentials are set and SMARTDESK_LIVE_TESTS=1)",
 ]

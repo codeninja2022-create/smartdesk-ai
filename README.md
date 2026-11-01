@@ -7,10 +7,14 @@ reports the status of tickets an employee has already raised.
 
 Built for the Interview Kickstart Applied Agentic AI capstone.
 
-> **Status: Milestone 3 (RAG).** The agent answers IT and HR questions from
-> the 40-document knowledge base with source citations, and escalates (offers
-> a ticket) when the knowledge base does not contain the answer. Ticket
-> creation and ticket status still reply with placeholders until Milestones 4–5.
+> **Status: Milestone 4 (Jira integration).** The agent answers IT and HR
+> questions from the 40-document knowledge base with source citations, and
+> escalates (offers a ticket) when the knowledge base does not contain the
+> answer. A Jira ticket service (idempotent creation, lookup by employee email,
+> status and comments) is implemented and tested against the live project. The
+> conversational ticket and status flows with human approval arrive in
+> Milestone 5; until then the agent replies to ticket intents with placeholders,
+> and tickets can be created and inspected with `python -m smartdesk.tickets`.
 
 ## Tech stack
 
@@ -20,8 +24,8 @@ Built for the Interview Kickstart Applied Agentic AI capstone.
 | LLM | OpenAI `gpt-4o-mini` (configurable) via `langchain-openai` |
 | Embeddings | OpenAI `text-embedding-3-small` (configurable) |
 | Vector store | ChromaDB (local, persistent, cosine) |
-| Ticketing | Jira Cloud REST API *(M4)* |
-| Checkpoints & ticket mapping | SQLite *(M4–M5)* |
+| Ticketing | Jira Cloud REST API v3 (httpx) |
+| Ticket mapping & idempotency | SQLite (checkpoints in M5) |
 | Observability | Langfuse, with sensitive-data redaction |
 | UI | Chainlit *(M8)* |
 | Tests | pytest |
@@ -41,7 +45,7 @@ pip install -e ".[dev]"
 Copy-Item .env.example .env           # macOS/Linux: cp .env.example .env
 ```
 
-Then put your OpenAI key in `.env`.
+Then put your OpenAI key and Jira credentials in `.env`.
 
 ### Environment variables
 
@@ -61,6 +65,16 @@ Then put your OpenAI key in `.env`.
 | `SMARTDESK_CHROMA_COLLECTION` | no | `smartdesk_kb` | Collection name |
 | `SMARTDESK_RAG_TOP_K` | no | `5` | Chunks retrieved per question |
 | `SMARTDESK_RAG_MIN_SIMILARITY` | no | `0.35` | Abstention pre-filter (calibrated, see below) |
+| `JIRA_BASE_URL` | for tickets | — | e.g. `https://your-site.atlassian.net` |
+| `JIRA_EMAIL` | for tickets | — | Atlassian account email used for basic auth |
+| `JIRA_API_TOKEN` | for tickets | — | Atlassian API token (id.atlassian.com → Security → API tokens) |
+| `JIRA_PROJECT_KEY` | for tickets | — | Project that receives tickets, e.g. `KAN` |
+| `JIRA_ISSUE_TYPE` | no | `Task` | Issue type for new tickets |
+| `JIRA_TIMEOUT_SECONDS` | no | `10` | Per-request timeout |
+| `JIRA_MAX_RETRIES` | no | `2` | Retries for reads (GET/search) only |
+| `JIRA_MAX_CREATE_ATTEMPTS` | no | `2` | Create POSTs per call, each retry only after reconciling |
+| `JIRA_RECONCILE_POLLS` / `JIRA_RECONCILE_DELAY_SECONDS` | no | `3` / `2` | Searches for a timed-out create |
+| `SMARTDESK_DB_PATH` | no | `data/smartdesk.db` | SQLite ticket mapping and idempotency (git-ignored) |
 
 Secrets are only read from the environment. `.env` is git-ignored.
 
@@ -222,6 +236,98 @@ both splits, including every generated answer, is written to
   compete, and the fallback to the whole KB means a wrong domain hint cannot
   by itself cause an escalation.
 
+## Jira tickets
+
+`src/smartdesk/tickets/` is a self-contained ticket service. The LangGraph
+workflow (M5) depends only on its `TicketService` interface:
+
+| Method | Behaviour |
+|---|---|
+| `create_ticket(draft, op_id)` | Creates a Jira issue at most once per `op_id`; returns the real key and `…/browse/KEY` URL |
+| `list_tickets(email)` | All of the employee's tickets, most recently updated first; `[]` when there are none |
+| `get_ticket(email, key)` | Status, priority, description and support-team comments; `None` if the key does not exist **or belongs to another email** |
+
+A `TicketDraft` holds the collected fields: employee email (validated,
+trimmed, lower-cased), a one-line summary, a description, the IT/HR category
+and an optional priority (Low/Medium/High/Critical; Critical maps to Jira's
+Highest).
+
+### How tickets are linked to employees
+
+Every issue SmartDesk creates carries:
+
+- **Description:** a header with `Employee email: …`, the category and
+  "Raised via SmartDesk AI", followed by the employee's description, so the
+  support team sees who raised it.
+- **Labels:** `smartdesk`, `sd-cat-it` / `sd-cat-hr`,
+  `sd-emp-<first 16 hex of sha256(email)>` and `sd-op-<first 32 hex of op_id>`.
+
+Lookups combine two sources. The local SQLite table `employee_tickets` maps
+email → ticket key (saved on creation), and a Jira search on the `sd-emp-`
+label finds tickets the local file does not know (they are written back).
+Jira is the source of truth for status and comments, and tickets deleted in
+Jira are dropped from the result. SQLite also covers the few seconds before a
+new issue appears in Jira's search index.
+
+**The `sd-emp-` label is pseudonymisation, not anonymisation.** It keeps the
+address out of label pickers and filters, but it is an unsalted hash: anyone
+who can see the label and guess candidate addresses can confirm a match by
+hashing them (a dictionary attack). It is deliberately unsalted so the same
+email always maps to the same label on any machine without a shared secret,
+and the plain address is in the description for the support team anyway.
+
+Tickets created by hand in the Jira UI have no `sd-emp-` label, so status
+lookups do not find them. Create test tickets through SmartDesk or the CLI
+below; see [`docs/demo-script.md`](docs/demo-script.md).
+
+### Duplicate prevention and timeout reconciliation
+
+`derive_op_id(session_id, draft)` is a SHA-256 of the session id (the
+LangGraph thread id from M5) and the normalised draft. The same approved
+draft submitted twice in a session (a double click, a node re-run after
+resume) has the same op id. An edited draft or a new session gets a new one.
+
+SQLite table `ticket_ops` tracks each op as `pending`, `unknown`, `created`
+or `failed`, and the op id travels to Jira as the `sd-op-` label:
+
+```
+op created                   -> return the existing ticket, no Jira call
+op pending, recent           -> another submission is in flight: report "being created"
+op pending (stale) / unknown -> reconcile first
+op new / failed              -> claim it (BEGIN IMMEDIATE), then POST
+
+POST /issue
+  201                                    -> created; save the email mapping
+  4xx, connection refused / timed out    -> failed (nothing created; a later retry is safe)
+  read timeout, dropped connection, 5xx  -> unknown: the issue may exist
+     reconcile: search labels = "sd-op-…", up to 3 polls 2 s apart
+                (Jira search is eventually consistent)
+       found -> created (the oldest wins if several match)
+       none  -> POST again, at most JIRA_MAX_CREATE_ATTEMPTS per call
+  still unknown -> TicketCreationUncertain; the next call reconciles before posting
+```
+
+A POST is never repeated without first searching for its op label, and never
+sent for an op that is already `created`. Reads (GET, search) are idempotent,
+so they retry up to `JIRA_MAX_RETRIES` times on timeouts, 429 and 5xx with
+exponential backoff (0.5 s, 1 s, …), or the server's `Retry-After` on 429
+(capped at 30 s).
+
+**Remaining risk:** if an issue was created but is still missing from search
+after all polls, a retry can create a second one. Both carry the same
+`sd-op-` label, and later reconciliation always picks the oldest.
+
+### Ticket CLI
+
+```powershell
+python -m smartdesk.tickets create --email jane.doe@novatech.example --category IT `
+    --summary "Monitor flickers on dock" --description "Flickers when docked." --priority Medium
+python -m smartdesk.tickets list --email jane.doe@novatech.example
+python -m smartdesk.tickets show KAN-12 --email jane.doe@novatech.example
+```
+
+`create` prints the ticket and asks for confirmation before sending anything.
+
 ## Run
 
 ```powershell
@@ -237,8 +343,17 @@ $env:SMARTDESK_LIVE_TESTS = "1"; pytest     # also run live OpenAI checks
 ```
 
 Tests marked `openai_live` call the real OpenAI API and are skipped unless
-`SMARTDESK_LIVE_TESTS=1`. Tests marked `jira_live` (from Milestone 4) are
-skipped unless Jira credentials are configured.
+`SMARTDESK_LIVE_TESTS=1`. Tests marked `jira_live` need both
+`SMARTDESK_LIVE_TESTS=1` and all four `JIRA_*` connection variables. Each run
+creates one ticket for an `@example.com` test address, labelled
+`sd-live-test`, and deletes it afterwards. If the account may not delete
+issues, the ticket is moved to Done and keeps its `sd-live-test` label for
+manual clean-up. Unit tests mock Jira with an in-memory fake
+(`tests/jira_fake.py`) served through `httpx.MockTransport`.
+
+```powershell
+$env:SMARTDESK_LIVE_TESTS = "1"; pytest -m jira_live   # live Jira only
+```
 
 ## Observability and redaction
 
@@ -258,6 +373,7 @@ src/smartdesk/
   redaction.py       secret / PII masking
   graph/             LangGraph state, prompts and workflow
   rag/               retrieval, grounded answers + citations, abstention calibration
+  tickets/           Jira adapter, SQLite store, idempotent ticket service, ticket CLI
   kb/                KB catalogue, fact sheet, generation (Step A), chunking,
                      ChromaDB ingestion (Step B) and retrieval evaluation
   __main__.py        CLI entry point
@@ -268,5 +384,6 @@ data/
 tests/               pytest suite
 docs/
   rubric-traceability.md   spec requirements -> implementation and evidence
+  demo-script.md           demo data rules and ticket walkthrough
   data-sources.md          datasets, licences, transformations, deliberate gaps
 ```

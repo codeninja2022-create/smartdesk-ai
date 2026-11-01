@@ -119,6 +119,8 @@ class JiraTicketService:
         for _ in range(self.max_create_attempts):
             if needs_reconcile and (key := self._reconcile(op_id, draft.category)):
                 return CreatedTicket(key, self.client.browse_url(key), already_existed=resumed)
+            # Unconditional: two concurrent calls on one `unknown` op can both post.
+            # Compare-and-set planned for M6 (docs/decisions.md, M6-1).
             self.store.record_attempt(op_id)
             try:
                 key = self.client.create_issue(self._issue_fields(draft, op_id))

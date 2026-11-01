@@ -316,6 +316,8 @@ exponential backoff (0.5 s, 1 s, …), or the server's `Retry-After` on 429
 **Remaining risk:** if an issue was created but is still missing from search
 after all polls, a retry can create a second one. Both carry the same
 `sd-op-` label, and later reconciliation always picks the oldest.
+Two concurrent retries of the same `unknown` op can also both post; a
+compare-and-set fix is planned for M6 ([`docs/decisions.md`](docs/decisions.md), M6-1).
 
 ### Ticket CLI
 
@@ -385,5 +387,6 @@ tests/               pytest suite
 docs/
   rubric-traceability.md   spec requirements -> implementation and evidence
   demo-script.md           demo data rules and ticket walkthrough
+  decisions.md             agreed design decisions and deferred items
   data-sources.md          datasets, licences, transformations, deliberate gaps
 ```

@@ -13,3 +13,4 @@ __pycache__/
 # Local data stores
 chroma/
 *.db
+data/raw/

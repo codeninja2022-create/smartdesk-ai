@@ -5,8 +5,9 @@ Secrets are held as `SecretStr` so they never appear in reprs or logs.
 """
 
 from functools import lru_cache
+from pathlib import Path
 
-from pydantic import Field, SecretStr
+from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -34,7 +35,15 @@ class Settings(BaseSettings):
     # Langfuse (optional)
     langfuse_public_key: str | None = Field(default=None, validation_alias="LANGFUSE_PUBLIC_KEY")
     langfuse_secret_key: SecretStr | None = Field(default=None, validation_alias="LANGFUSE_SECRET_KEY")
-    langfuse_host: str = Field(default="https://cloud.langfuse.com", validation_alias="LANGFUSE_HOST")
+    langfuse_host: str = Field(
+        default="https://cloud.langfuse.com",
+        validation_alias=AliasChoices("LANGFUSE_HOST", "LANGFUSE_BASE_URL"),
+    )
+
+    # Knowledge base and vector store
+    kb_dir: Path = Field(default=Path("data/kb"), validation_alias="SMARTDESK_KB_DIR")
+    chroma_dir: Path = Field(default=Path("data/chroma"), validation_alias="SMARTDESK_CHROMA_DIR")
+    chroma_collection: str = Field(default="smartdesk_kb", validation_alias="SMARTDESK_CHROMA_COLLECTION")
 
     @property
     def langfuse_enabled(self) -> bool:

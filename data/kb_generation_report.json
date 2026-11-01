@@ -1,0 +1,666 @@
+{
+  "generated_at": "2026-10-31",
+  "model": "gpt-4o-mini",
+  "datasets": {
+    "hr_qa": {
+      "repo_id": "strova-ai/hr-policies-qa-dataset",
+      "revision": "83682448cb8afe6a6123583e722ecdf04fb20b40",
+      "licence": "MIT",
+      "cleaning": {
+        "loaded": 644,
+        "empty": 0,
+        "duplicates": 0,
+        "gap_topic": 2,
+        "kept": 642
+      },
+      "assignment": {
+        "assigned": 72,
+        "dropped_gap_semantic": 0,
+        "below_threshold": 197,
+        "over_topic_limit": 373
+      }
+    },
+    "it_tickets": {
+      "repo_id": "Console-AI/IT-helpdesk-synthetic-tickets",
+      "revision": "165693849d955c6da4c00bc8be8e541afec0514e",
+      "licence": "MIT",
+      "cleaning": {
+        "loaded": 500,
+        "empty": 0,
+        "duplicates": 0,
+        "gap_topic": 26,
+        "kept": 474
+      },
+      "assignment": {
+        "assigned": 128,
+        "dropped_gap_semantic": 2,
+        "below_threshold": 156,
+        "over_topic_limit": 188
+      }
+    }
+  },
+  "topics": {
+    "hr-anti-bribery": {
+      "source_records": [
+        "hr_qa:78",
+        "hr_qa:14",
+        "hr_qa:101",
+        "hr_qa:8",
+        "hr_qa:12",
+        "hr_qa:204",
+        "hr_qa:84",
+        "hr_qa:81"
+      ],
+      "similarities": [
+        0.621,
+        0.613,
+        0.594,
+        0.593,
+        0.591,
+        0.582,
+        0.581,
+        0.581
+      ]
+    },
+    "hr-anti-harassment": {
+      "source_records": [
+        "hr_qa:540",
+        "hr_qa:543",
+        "hr_qa:546",
+        "hr_qa:585",
+        "hr_qa:463",
+        "hr_qa:474",
+        "hr_qa:586",
+        "hr_qa:582"
+      ],
+      "similarities": [
+        0.694,
+        0.641,
+        0.641,
+        0.619,
+        0.616,
+        0.606,
+        0.603,
+        0.597
+      ]
+    },
+    "hr-code-of-conduct": {
+      "source_records": [
+        "hr_qa:631",
+        "hr_qa:636",
+        "hr_qa:343",
+        "hr_qa:498",
+        "hr_qa:634",
+        "hr_qa:641",
+        "hr_qa:172",
+        "hr_qa:621"
+      ],
+      "similarities": [
+        0.595,
+        0.594,
+        0.579,
+        0.569,
+        0.566,
+        0.558,
+        0.554,
+        0.545
+      ]
+    },
+    "hr-expense-reimbursement": {
+      "source_records": [],
+      "similarities": []
+    },
+    "hr-grievance-whistleblower": {
+      "source_records": [
+        "hr_qa:235",
+        "hr_qa:232",
+        "hr_qa:291",
+        "hr_qa:234",
+        "hr_qa:238",
+        "hr_qa:274",
+        "hr_qa:288",
+        "hr_qa:267"
+      ],
+      "similarities": [
+        0.703,
+        0.643,
+        0.61,
+        0.598,
+        0.588,
+        0.581,
+        0.563,
+        0.55
+      ]
+    },
+    "hr-health-insurance": {
+      "source_records": [],
+      "similarities": []
+    },
+    "hr-hybrid-work": {
+      "source_records": [
+        "hr_qa:378",
+        "hr_qa:414",
+        "hr_qa:375",
+        "hr_qa:374",
+        "hr_qa:372",
+        "hr_qa:416",
+        "hr_qa:385",
+        "hr_qa:381"
+      ],
+      "similarities": [
+        0.605,
+        0.591,
+        0.574,
+        0.566,
+        0.565,
+        0.54,
+        0.535,
+        0.529
+      ]
+    },
+    "hr-learning-budget": {
+      "source_records": [],
+      "similarities": []
+    },
+    "hr-leave-policy": {
+      "source_records": [
+        "hr_qa:49",
+        "hr_qa:137",
+        "hr_qa:365",
+        "hr_qa:48",
+        "hr_qa:43",
+        "hr_qa:134",
+        "hr_qa:22",
+        "hr_qa:376"
+      ],
+      "similarities": [
+        0.539,
+        0.526,
+        0.524,
+        0.502,
+        0.498,
+        0.492,
+        0.461,
+        0.453
+      ]
+    },
+    "hr-performance-reviews": {
+      "source_records": [
+        "hr_qa:404",
+        "hr_qa:369",
+        "hr_qa:445",
+        "hr_qa:593",
+        "hr_qa:157",
+        "hr_qa:297",
+        "hr_qa:295",
+        "hr_qa:446"
+      ],
+      "similarities": [
+        0.542,
+        0.508,
+        0.471,
+        0.465,
+        0.452,
+        0.442,
+        0.429,
+        0.428
+      ]
+    },
+    "hr-public-holidays": {
+      "source_records": [
+        "hr_qa:143",
+        "hr_qa:145"
+      ],
+      "similarities": [
+        0.593,
+        0.455
+      ]
+    },
+    "hr-resignation-exit": {
+      "source_records": [
+        "hr_qa:410",
+        "hr_qa:408"
+      ],
+      "similarities": [
+        0.46,
+        0.432
+      ]
+    },
+    "it-account-lockout": {
+      "source_records": [
+        "it_tickets:k4d32htfs",
+        "it_tickets:3ykbouism",
+        "it_tickets:zb4gprrvy",
+        "it_tickets:swtogsl0u"
+      ],
+      "similarities": [
+        0.521,
+        0.454,
+        0.435,
+        0.422
+      ]
+    },
+    "it-app-crashes": {
+      "source_records": [
+        "it_tickets:86eza0fwq",
+        "it_tickets:eg0yidc93",
+        "it_tickets:h37svhhpo",
+        "it_tickets:f3czsohfi",
+        "it_tickets:uutx12nsj",
+        "it_tickets:n3v51cp0b",
+        "it_tickets:q9j8s2m63",
+        "it_tickets:hmth9114b"
+      ],
+      "similarities": [
+        0.55,
+        0.462,
+        0.442,
+        0.429,
+        0.428,
+        0.423,
+        0.412,
+        0.404
+      ]
+    },
+    "it-corporate-wifi": {
+      "source_records": [
+        "it_tickets:2jpz01ayh",
+        "it_tickets:gkytppr0s",
+        "it_tickets:aqcxie2ju",
+        "it_tickets:d2l6qvoug",
+        "it_tickets:j7ewcvsq8",
+        "it_tickets:l3a1kzrp4",
+        "it_tickets:dbq0oz6bu",
+        "it_tickets:f21gp9dot"
+      ],
+      "similarities": [
+        0.595,
+        0.572,
+        0.558,
+        0.554,
+        0.546,
+        0.544,
+        0.543,
+        0.54
+      ]
+    },
+    "it-data-backup": {
+      "source_records": [
+        "it_tickets:p6qkee8gz",
+        "it_tickets:w41gfxeb2",
+        "it_tickets:s1wz1bnjr",
+        "it_tickets:570gnt5qw",
+        "it_tickets:01conimmo",
+        "it_tickets:on9k2c52p",
+        "it_tickets:zc4n2g8dv",
+        "it_tickets:38y1oqnr4"
+      ],
+      "similarities": [
+        0.491,
+        0.491,
+        0.478,
+        0.464,
+        0.461,
+        0.455,
+        0.452,
+        0.436
+      ]
+    },
+    "it-guest-wifi": {
+      "source_records": [],
+      "similarities": []
+    },
+    "it-mfa-setup": {
+      "source_records": [
+        "it_tickets:ng61hwqba",
+        "it_tickets:01tp2x3sj",
+        "it_tickets:ajpxpgk3x",
+        "it_tickets:nz2lq9ijq",
+        "it_tickets:h7xrqbbrf",
+        "it_tickets:1sj8czs0k",
+        "it_tickets:he67xaaog",
+        "it_tickets:kqzbzny9x"
+      ],
+      "similarities": [
+        0.613,
+        0.608,
+        0.604,
+        0.602,
+        0.601,
+        0.588,
+        0.584,
+        0.581
+      ]
+    },
+    "it-mobile-email": {
+      "source_records": [
+        "it_tickets:gxmz0sfiz",
+        "it_tickets:oms08r312",
+        "it_tickets:8sh44yrk1",
+        "it_tickets:wgb8znxg0",
+        "it_tickets:5nnb0ihf1",
+        "it_tickets:x5texzl6g",
+        "it_tickets:vb8hunui9",
+        "it_tickets:z31bb02tg"
+      ],
+      "similarities": [
+        0.636,
+        0.599,
+        0.579,
+        0.565,
+        0.56,
+        0.553,
+        0.545,
+        0.544
+      ]
+    },
+    "it-outlook-calendar": {
+      "source_records": [
+        "it_tickets:ubucd171m",
+        "it_tickets:d6wh9t3az",
+        "it_tickets:g1zsugzux",
+        "it_tickets:6bqwkmxi1",
+        "it_tickets:1exm9vdsi",
+        "it_tickets:0mgy5bnab",
+        "it_tickets:jfawebid6",
+        "it_tickets:5g39d4ekb"
+      ],
+      "similarities": [
+        0.563,
+        0.536,
+        0.51,
+        0.493,
+        0.487,
+        0.477,
+        0.465,
+        0.456
+      ]
+    },
+    "it-password-reset": {
+      "source_records": [
+        "it_tickets:r8xk85wma",
+        "it_tickets:wgqkkqzfw",
+        "it_tickets:krd16kh1x",
+        "it_tickets:wl2k7c69q",
+        "it_tickets:k4tilwxa4",
+        "it_tickets:xe20e6koh",
+        "it_tickets:7nlbs938l",
+        "it_tickets:sai67ttf1"
+      ],
+      "similarities": [
+        0.569,
+        0.54,
+        0.534,
+        0.522,
+        0.513,
+        0.51,
+        0.498,
+        0.495
+      ]
+    },
+    "it-remote-desktop": {
+      "source_records": [
+        "it_tickets:arztwej7e",
+        "it_tickets:0f4son7ut",
+        "it_tickets:nbshemzya",
+        "it_tickets:upov2bl5v",
+        "it_tickets:8y8rmt8sl",
+        "it_tickets:cg6f0mvu7",
+        "it_tickets:tbxt0zeiu",
+        "it_tickets:2r030ppqb"
+      ],
+      "similarities": [
+        0.639,
+        0.594,
+        0.579,
+        0.577,
+        0.575,
+        0.562,
+        0.558,
+        0.544
+      ]
+    },
+    "it-security-incidents": {
+      "source_records": [
+        "it_tickets:ftmfvqfh0",
+        "it_tickets:ejw6honqh",
+        "it_tickets:kuv8bhmdx",
+        "it_tickets:ee6rom7r7",
+        "it_tickets:r4kmk0cex",
+        "it_tickets:j3u5twh6n",
+        "it_tickets:j2sw9f8lj",
+        "it_tickets:2uqlzpdkn"
+      ],
+      "similarities": [
+        0.667,
+        0.602,
+        0.574,
+        0.555,
+        0.524,
+        0.521,
+        0.486,
+        0.48
+      ]
+    },
+    "it-shared-drives": {
+      "source_records": [
+        "it_tickets:nff4j4zve",
+        "it_tickets:kz5mjjpox",
+        "it_tickets:jp7in6v9s",
+        "it_tickets:6uemapswh",
+        "it_tickets:1000dbtlh",
+        "it_tickets:vl5kq4zjf",
+        "it_tickets:vaslvrybw",
+        "it_tickets:vsh16x90o"
+      ],
+      "similarities": [
+        0.629,
+        0.623,
+        0.617,
+        0.595,
+        0.591,
+        0.573,
+        0.566,
+        0.563
+      ]
+    },
+    "it-slow-network": {
+      "source_records": [
+        "it_tickets:ngvy8khs5",
+        "it_tickets:5pxtxnpck",
+        "it_tickets:kwmtuhhp6",
+        "it_tickets:5s05g5sc0",
+        "it_tickets:xljo7q748",
+        "it_tickets:gmeni3ax4",
+        "it_tickets:rq9cpafv3",
+        "it_tickets:1ntu94d02"
+      ],
+      "similarities": [
+        0.687,
+        0.686,
+        0.664,
+        0.66,
+        0.656,
+        0.655,
+        0.653,
+        0.645
+      ]
+    },
+    "it-software-requests": {
+      "source_records": [
+        "it_tickets:31jnhn5po",
+        "it_tickets:uvsiwf9kz",
+        "it_tickets:drx3va167",
+        "it_tickets:mhq047k94",
+        "it_tickets:3g7nmxqkp",
+        "it_tickets:42fi9ks0a",
+        "it_tickets:dn27ty3d2",
+        "it_tickets:tfl1ohzhc"
+      ],
+      "similarities": [
+        0.468,
+        0.453,
+        0.444,
+        0.443,
+        0.428,
+        0.425,
+        0.424,
+        0.421
+      ]
+    },
+    "it-sso-cloud-access": {
+      "source_records": [
+        "it_tickets:rfg2pqwqg",
+        "it_tickets:cmw7p9hhx",
+        "it_tickets:fzuhv1t3r",
+        "it_tickets:gsbql2au5",
+        "it_tickets:kit11236w",
+        "it_tickets:cvf932pt2",
+        "it_tickets:cg845s4tj",
+        "it_tickets:tkgpedqfl"
+      ],
+      "similarities": [
+        0.562,
+        0.548,
+        0.521,
+        0.502,
+        0.501,
+        0.5,
+        0.496,
+        0.492
+      ]
+    },
+    "it-video-conferencing": {
+      "source_records": [
+        "it_tickets:feycb1s0u",
+        "it_tickets:6je8ewqp2",
+        "it_tickets:4du3lkuz0",
+        "it_tickets:890zwmzyb",
+        "it_tickets:ijkptlp5t",
+        "it_tickets:gsvjjul9o",
+        "it_tickets:0k8ro1kdx",
+        "it_tickets:9wkuwgdlj"
+      ],
+      "similarities": [
+        0.524,
+        0.518,
+        0.505,
+        0.468,
+        0.435,
+        0.427,
+        0.419,
+        0.416
+      ]
+    },
+    "it-vpn-setup": {
+      "source_records": [
+        "it_tickets:3iclill17",
+        "it_tickets:g5ox12x1v",
+        "it_tickets:jdy0itrhg",
+        "it_tickets:eu047v7pl"
+      ],
+      "similarities": [
+        0.632,
+        0.602,
+        0.575,
+        0.568
+      ]
+    },
+    "it-vpn-troubleshooting": {
+      "source_records": [
+        "it_tickets:gixitb6w4",
+        "it_tickets:il7fw6is3",
+        "it_tickets:jlm61eonw",
+        "it_tickets:oyzx28mhf",
+        "it_tickets:cjt8t5scv",
+        "it_tickets:jmm69mpwo",
+        "it_tickets:bdrby5ar2",
+        "it_tickets:4q06jbf94"
+      ],
+      "similarities": [
+        0.688,
+        0.672,
+        0.587,
+        0.584,
+        0.572,
+        0.568,
+        0.549,
+        0.543
+      ]
+    },
+    "onb-benefits-enrolment": {
+      "source_records": [],
+      "similarities": []
+    },
+    "onb-buddy-programme": {
+      "source_records": [],
+      "similarities": []
+    },
+    "onb-day-one": {
+      "source_records": [
+        "hr_qa:193",
+        "hr_qa:181",
+        "hr_qa:643",
+        "hr_qa:56",
+        "hr_qa:167",
+        "hr_qa:383",
+        "hr_qa:50",
+        "hr_qa:124"
+      ],
+      "similarities": [
+        0.518,
+        0.494,
+        0.487,
+        0.486,
+        0.486,
+        0.48,
+        0.479,
+        0.477
+      ]
+    },
+    "onb-it-equipment": {
+      "source_records": [
+        "hr_qa:407",
+        "hr_qa:409",
+        "hr_qa:413"
+      ],
+      "similarities": [
+        0.457,
+        0.441,
+        0.41
+      ]
+    },
+    "onb-probation": {
+      "source_records": [],
+      "similarities": []
+    },
+    "pay-payday": {
+      "source_records": [
+        "hr_qa:142"
+      ],
+      "similarities": [
+        0.422
+      ]
+    },
+    "pay-payslips": {
+      "source_records": [],
+      "similarities": []
+    },
+    "pay-salary-structure": {
+      "source_records": [],
+      "similarities": []
+    },
+    "pay-stock-options": {
+      "source_records": [],
+      "similarities": []
+    },
+    "pay-tax-declaration": {
+      "source_records": [],
+      "similarities": []
+    }
+  },
+  "written": [
+    "it-vpn-setup"
+  ],
+  "failures": []
+}

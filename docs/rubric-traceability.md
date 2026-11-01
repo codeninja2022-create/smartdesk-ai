@@ -10,7 +10,7 @@ Applied Agentic AI Program) to where it is implemented and how it is verified.
 - **Evidence** points to code, tests and docs once they exist.
 - **Status:** ✅ done · 🟡 partial / foundation only · ⬜ not started.
 
-Last updated: Milestone 2.
+Last updated: Milestone 3.
 
 ---
 
@@ -22,9 +22,9 @@ Last updated: Milestone 2.
 |---|---|---|---|---|---|---|
 | A1 | Quality and breadth of KB content | 5 | FR-1.1 – FR-1.4, §3.4 | M2 | `data/kb/` (40 docs), `docs/data-sources.md`, `tests/test_kb_data.py` | ✅ |
 | A2 | Chunking strategy and justification | 5 | FR-2.1 | M2 | README "Chunking strategy", `src/smartdesk/kb/chunking.py`, `tests/test_kb_chunking.py` | ✅ |
-| A3 | Retrieval quality — relevant results for test queries | 5 | FR-2.2, FR-2.3 | M2, M3, M7 | `data/eval/eval_set.jsonl`, `python -m smartdesk.kb.evaluate` (Recall@5 1.000, Hit@1 0.976); report in M7 | 🟡 |
-| A4 | LLM grounding — no hallucination | 5 | FR-2.4, NFR-1.3 | M3, M6, M7 | grounded-answer tests | ⬜ |
-| A5 | Confidence / escalation logic | 5 | FR-3.1, FR-3.2 | M3, M7 | calibration results in evaluation report | ⬜ |
+| A3 | Retrieval quality — relevant results for test queries | 5 | FR-2.2, FR-2.3 | M2, M3, M7 | `src/smartdesk/rag/retriever.py`, `tests/test_rag_retriever.py`, `python -m smartdesk.rag.calibrate` (dev Hit@1 0.976 / Recall@5 1.000; held-out Hit@1 0.857 / Recall@5 1.000); report in M7 | 🟡 |
+| A4 | LLM grounding — no hallucination | 5 | FR-2.4, NFR-1.3 | M3, M6, M7 | `src/smartdesk/rag/answer.py`, `tests/test_rag_answer.py`, `tests/test_workflow.py`; answers cite an expected doc 41/41 dev, 7/7 held-out (`data/eval/calibration_report.json`); injection hardening in M6 | 🟡 |
+| A5 | Confidence / escalation logic | 5 | FR-3.1, FR-3.2 | M3, M7 | threshold 0.35 + LLM sufficiency check, `python -m smartdesk.rag.calibrate` (escalation precision/recall 1.000/1.000 on dev and on held-out), README "Calibrating abstention"; ticket hand-off in M5 | 🟡 |
 
 ### B. Ticket Creation (Write Operation) — 20 marks
 
@@ -88,7 +88,7 @@ Last updated: Milestone 2.
 | ID | Requirement (verbatim) | Milestone | Status |
 |---|---|---|---|
 | FR-1.1 | "You must prepare a realistic knowledge base that covers both IT and HR topics for a fictional (or real, anonymised) company." | M2 | ✅ |
-| FR-1.2 | "The knowledge base should contain at least 30–50 question–answer pairs or document chunks that span the categories listed below." | M2 | ✅ (40 docs, 412 chunks) |
+| FR-1.2 | "The knowledge base should contain at least 30–50 question–answer pairs or document chunks that span the categories listed below." | M2 | ✅ (40 docs, 413 chunks) |
 | FR-1.3 | Categories table: **IT Support** (Password reset process, VPN configuration, Software installation requests, MFA setup, Guest Wi-Fi access, Email configuration on mobile); **HR Policies** (Leave policy (casual, sick, earned), WFH guidelines, Reimbursement process, Code of conduct, Anti-harassment policy, Performance review cycle); **Onboarding** (Day-one checklist, IT equipment allocation, Benefits enrollment, Buddy programme, Probation period); **Payroll & Comp** (Pay-day schedule, Tax declaration process, Salary structure, Stock-option vesting). | M2 | ✅ (every listed topic has a document) |
 | FR-1.4 | Example questions to support: "How do I reset my password?", "How do I connect to the VPN?", "How do I request a software licence?", "How many sick leaves per year?", "What is the WFH policy?", "How do I submit a reimbursement?", "What do I do on my first day?", "When do I get my laptop?", "How do I enrol in insurance?", "When is payday?", "How do I submit my tax declaration?", "How does vesting work?" | M2, M7 (eval set) | ✅ (all in `data/eval/eval_set.jsonl`) |
 
@@ -98,15 +98,15 @@ Last updated: Milestone 2.
 |---|---|---|---|
 | FR-2.1 | "You must build an indexing pipeline that ingests the documents and makes them searchable." | M2 | ✅ `python -m smartdesk.kb.ingest` |
 | FR-2.2 | "Your pipeline must include at least one of the following retrieval strategies (using more than one carries bonus marks): Dense vector search … Sparse keyword search … Hybrid search that combines dense and sparse retrieval with a re-ranker." — **Chosen: dense (OpenAI `text-embedding-3-small` + ChromaDB).** | M2, M3 | ✅ dense retrieval indexed |
-| FR-2.3 | "Regardless of strategy, you must demonstrate that the retrieval pipeline returns relevant chunks for a given query, and that the LLM uses these chunks to generate a grounded answer." | M2, M3, M7 | ⬜ |
-| FR-2.4 | "The agent must not hallucinate answers that are not present in the knowledge base." | M3, M6 | ⬜ |
+| FR-2.3 | "Regardless of strategy, you must demonstrate that the retrieval pipeline returns relevant chunks for a given query, and that the LLM uses these chunks to generate a grounded answer." | M2, M3, M7 | ✅ retrieval metrics + cited answers in `data/eval/calibration_report.json`; formal report M7 |
+| FR-2.4 | "The agent must not hallucinate answers that are not present in the knowledge base." | M3, M6 | 🟡 context-only prompt, evidence-first sufficiency check, citations validated against passages; M6 adds guardrail tests |
 
 ### FR-3 Confidence handling & escalation (§2.1.3)
 
 | ID | Requirement (verbatim) | Milestone | Status |
 |---|---|---|---|
-| FR-3.1 | "Your agent must be able to determine when it does not know the answer." Suggested approaches: retrieval-score threshold, LLM self-assessment, no-retrieval fallback, or "A combination of the above with a human-in-the-loop confirmation before escalating." | M3 | ⬜ |
-| FR-3.2 | "When the agent determines it cannot answer, it must transition to the Ticket Creation flow described in Section 2.2." | M3, M5 | ⬜ |
+| FR-3.1 | "Your agent must be able to determine when it does not know the answer." Suggested approaches: retrieval-score threshold, LLM self-assessment, no-retrieval fallback, or "A combination of the above with a human-in-the-loop confirmation before escalating." | M3 | ✅ no-retrieval fallback + calibrated score threshold + LLM self-assessment |
+| FR-3.2 | "When the agent determines it cannot answer, it must transition to the Ticket Creation flow described in Section 2.2." | M3, M5 | 🟡 conditional edge to `escalate`, which offers a ticket; ticket flow in M5 |
 
 ### FR-4 Ticket creation (§2.2)
 
@@ -148,7 +148,7 @@ Last updated: Milestone 2.
 |---|---|---|---|
 | NFR-1.1 | "The agent must maintain a polite, professional, and empathetic tone throughout." | M1 → M5 | 🟡 (canned replies) |
 | NFR-1.2 | "The agent must handle greetings, small talk, and out-of-scope questions gracefully." | M1 → M5 | 🟡 |
-| NFR-1.3 | "The agent must not hallucinate. If the KB does not contain the answer, the agent must acknowledge it." | M3, M6 | ⬜ |
+| NFR-1.3 | "The agent must not hallucinate. If the KB does not contain the answer, the agent must acknowledge it." | M3, M6 | 🟡 escalation reply acknowledges the gap; gap questions escalated 11/11 dev, 10/10 held-out |
 | NFR-2.1 | "The agent should remember context within a single session (e.g., do not re-ask for email)." | M5 | 🟡 (history kept per thread) |
 | NFR-2.2 | "Multi-turn conversations must flow naturally without losing track of the topic." | M5 | 🟡 |
 | NFR-3.1 | "If the external API is unreachable, the agent must inform the employee politely and suggest trying again later." | M4, M6 | ⬜ |

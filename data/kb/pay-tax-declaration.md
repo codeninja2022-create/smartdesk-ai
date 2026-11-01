@@ -1,6 +1,6 @@
 ---
 doc_id: pay-tax-declaration
-title: Income Tax Declaration and Proofs
+title: Tax Declaration and Investment Proofs
 domain: HR
 category: Payroll & Compensation
 subcategory: Tax
@@ -11,9 +11,9 @@ provenance:
   generator_model: gpt-4o-mini
   generated_at: '2026-10-31'
 ---
-# Income Tax Declaration and Proofs
+# Tax Declaration and Investment Proofs
 
-This article provides an overview of the income tax declaration process at NovaTech Solutions, including the differences between the old and new tax regimes, the investment declaration window, proof submission guidelines, and details about Form 16. It also outlines common deductions available to employees.
+This article explains how to submit your income tax declaration (also called the investment declaration) at NovaTech Solutions, including the choice between the old and new tax regimes, the declaration deadline, proof submission guidelines, and details about Form 16. It also outlines common deductions available to employees.
 
 ## Old vs New Tax Regime
 
@@ -29,15 +29,17 @@ Employees can choose between the old and new tax regimes when making their inves
 
 Employees should evaluate their financial situation and potential deductions to choose the most beneficial regime.
 
-## Investment Declaration Window
+## How to Submit Your Tax Declaration
 
-The investment declaration for the financial year must be submitted in PeopleHub by **30 April**. Employees are encouraged to declare their investments early to facilitate accurate payroll processing and tax calculations. The declaration includes:
+Your tax declaration, also called the investment declaration, tells payroll which tax regime you have chosen and which investments you plan to make, so the right amount of tax is deducted from your salary each month. It must be submitted in PeopleHub by **30 April** for the financial year. Employees are encouraged to declare early to ensure accurate payroll processing and tax calculations.
 
-1. **Eligible Investments**: Contributions to EPF, PPF, life insurance premiums, ELSS, and other specified investments.
-2. **Submission Process**:
-   - Log in to PeopleHub.
-   - Navigate to the **Tax Declaration** section.
-   - Fill in the required details and submit.
+To submit your tax declaration:
+
+1. Log in to PeopleHub.
+2. Navigate to the **Tax Declaration** section.
+3. Choose the old or new tax regime.
+4. Enter your planned eligible investments, such as contributions to EPF, PPF, life insurance premiums, ELSS and other specified investments.
+5. Review the details and submit.
 
 ## Proof Submission
 
@@ -74,9 +76,13 @@ It is important to keep track of eligible expenses and ensure proper documentati
 
 ## Frequently asked questions
 
-### What is the deadline for submitting my investment declaration?
+### How do I submit my tax declaration?
 
-The investment declaration must be submitted in PeopleHub by **30 April**.
+Log in to PeopleHub, open the **Tax Declaration** section, choose your tax regime, enter your planned investments and submit by **30 April**.
+
+### What is the deadline for submitting my tax declaration?
+
+The tax declaration (investment declaration) must be submitted in PeopleHub by **30 April**.
 
 ### When can I submit proof of my investments?
 

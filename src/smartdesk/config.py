@@ -45,6 +45,14 @@ class Settings(BaseSettings):
     chroma_dir: Path = Field(default=Path("data/chroma"), validation_alias="SMARTDESK_CHROMA_DIR")
     chroma_collection: str = Field(default="smartdesk_kb", validation_alias="SMARTDESK_CHROMA_COLLECTION")
 
+    # RAG. Similarities are ranking scores, not probabilities. The threshold is a
+    # pre-filter calibrated on data/eval/eval_set.jsonl (python -m smartdesk.rag.calibrate):
+    # lowest answerable top-1 score (0.403) minus a 0.05 safety margin.
+    rag_top_k: int = Field(default=5, ge=1, le=20, validation_alias="SMARTDESK_RAG_TOP_K")
+    rag_min_similarity: float = Field(
+        default=0.35, ge=0.0, le=1.0, validation_alias="SMARTDESK_RAG_MIN_SIMILARITY"
+    )
+
     @property
     def langfuse_enabled(self) -> bool:
         return bool(

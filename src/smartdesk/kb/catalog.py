@@ -123,8 +123,9 @@ TOPICS: tuple[Topic, ...] = (
     # --- Payroll & Compensation (5) ---
     _pay("payday", "Pay-Day Schedule", "Payroll",
          "When salary is paid, holidays and weekends around pay day, what to do if salary is late, changing your salary bank account."),
-    _pay("tax-declaration", "Income Tax Declaration and Proofs", "Tax",
-         "Old vs new regime, investment declaration window, proof submission, Form 16, common deductions."),
+    _pay("tax-declaration", "Tax Declaration and Investment Proofs", "Tax",
+         "How to submit your tax declaration (investment declaration) in PeopleHub, old vs new regime, "
+         "declaration deadline, proof submission, Form 16, common deductions."),
     _pay("salary-structure", "Salary Structure Explained", "Compensation",
          "CTC components: basic, HRA, special allowance, PF, gratuity, bonus; gross vs net pay."),
     _pay("stock-options", "Employee Stock Options (ESOP) and Vesting", "Equity",

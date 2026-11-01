@@ -7,10 +7,10 @@ reports the status of tickets an employee has already raised.
 
 Built for the Interview Kickstart Applied Agentic AI capstone.
 
-> **Status: Milestone 2 (knowledge base).** Intent routing works end to end
-> with the real LLM, and the 40-document knowledge base is generated and
-> indexed in ChromaDB. The agent's answers, ticket creation and ticket status
-> still reply with placeholders until Milestones 3–5.
+> **Status: Milestone 3 (RAG).** The agent answers IT and HR questions from
+> the 40-document knowledge base with source citations, and escalates (offers
+> a ticket) when the knowledge base does not contain the answer. Ticket
+> creation and ticket status still reply with placeholders until Milestones 4–5.
 
 ## Tech stack
 
@@ -59,6 +59,8 @@ Then put your OpenAI key in `.env`.
 | `SMARTDESK_KB_DIR` | no | `data/kb` | Committed KB documents |
 | `SMARTDESK_CHROMA_DIR` | no | `data/chroma` | ChromaDB storage (git-ignored) |
 | `SMARTDESK_CHROMA_COLLECTION` | no | `smartdesk_kb` | Collection name |
+| `SMARTDESK_RAG_TOP_K` | no | `5` | Chunks retrieved per question |
+| `SMARTDESK_RAG_MIN_SIMILARITY` | no | `0.35` | Abstention pre-filter (calibrated, see below) |
 
 Secrets are only read from the environment. `.env` is git-ignored.
 
@@ -99,8 +101,8 @@ licences, the transformation pipeline and the list of deliberate KB gaps.
 | IDs | `<doc_id>#<type>-<heading-slug>`, plus `-p<n>` for split parts. Stable across runs, so re-ingestion upserts in place. |
 | Metadata | `doc_id`, `title`, `domain`, `category`, `subcategory`, `section`, `chunk_type`, `source_type`, `tokens`, `content_hash`. |
 
-The resulting index has 412 chunks: 40 overview chunks (median 54 tokens),
-171 section chunks (median 108, max 376) and 201 FAQ chunks (median 55). No
+The resulting index has 413 chunks: 40 overview chunks (median 54 tokens),
+171 section chunks (median 108, max 376) and 202 FAQ chunks (median 55). No
 current section reaches the 400-token limit, so no splits occur today.
 
 **Why this approach:**
@@ -125,10 +127,106 @@ current section reaches the 400-token limit, so no splits occur today.
   Hit@1 is 0.976, Recall@5 is 1.000 and MRR is 0.988
   (`python -m smartdesk.kb.evaluate`).
 
+## Answering questions (RAG) and escalation
+
+```
+question -> router (intent, IT/HR domain, standalone query for follow-ups)
+         -> retrieve top 5 chunks (domain-filtered; whole KB if the domain search is weak)
+         -> no chunks, or top similarity < 0.35  -> escalate
+         -> LLM: quote evidence, judge sufficiency, answer with [n] markers
+         -> not sufficient, or no valid citation  -> escalate
+         -> answer + "Sources:" list built from chunk metadata
+```
+
+- **Grounding.** The answer prompt allows only facts stated in the retrieved
+  passages. The model must first quote its evidence, then decide whether it
+  answers the question. That ordering reduced false "I don't know" verdicts.
+- **Citations cannot be invented.** The LLM only returns passage numbers.
+  SmartDesk maps them back to the chunk's document title, section and
+  `doc_id`, drops numbers that do not match a passage, and escalates any
+  answer left without a valid citation.
+- **Retrieved text is untrusted.** Passages are wrapped in `<passage>`
+  delimiters, with any look-alike tags inside them removed. The prompt treats
+  them as data and ignores instructions found inside them.
+- **Escalation.** The agent says it could not find the answer, does not
+  guess, and offers to raise an IT or HR ticket. The ticket flow itself
+  arrives in Milestones 4–5.
+- **Follow-ups.** The first question is searched verbatim. On later turns the
+  router's standalone rewrite is used, for example "what about on Mac?" after
+  a VPN question.
+
+### Calibrating abstention
+
+```powershell
+python -m smartdesk.rag.calibrate    # routing, retrieval and answering on the dev and held-out sets
+```
+
+Two evaluation splits are kept apart:
+
+- **Dev** (`data/eval/eval_set.jsonl`, 63 questions) is used for calibration.
+  The threshold sweep and recommendation come only from this split, and the
+  prompts were refined against it.
+- **Held-out** (`data/eval/heldout/eval_set.jsonl`, 21 questions) is **never
+  used for tuning**. It holds paraphrases, deliberate gap questions, topics the
+  KB happens not to cover (labelled `unplanned:<topic>`), injection-style
+  out-of-scope messages and a greeting. It is scored once, at the configured
+  threshold.
+
+Similarity scores are ranking scores, not probabilities, and answerable and
+gap questions overlap (dev: answerable top-1 0.40–0.75, gap 0.20–0.45;
+held-out: answerable 0.43–0.65, gap 0.27–0.45). So the threshold is only a
+cheap pre-filter, and the LLM's evidence-based sufficiency check makes the
+final decision. The threshold is set to the lowest dev answerable top-1 score
+(0.403) minus a 0.05 margin, which gives **0.35**.
+
+Results at `min_similarity = 0.35`. "End-to-end" means what the employee
+actually gets: routing first, then the RAG decision.
+
+| | Dev (63) | Held-out (21) |
+|---|---|---|
+| Answerable → answered | 41/41 | 7/7 |
+| Gap → escalated (offers a ticket) | 11/11 (6 by threshold, 5 by LLM check) | 10/10 (5 by threshold, 5 by LLM check) |
+| Out of scope → declined | 6/6 | 3/3 |
+| Greeting → greeted | 5/5 | 1/1 |
+| Routing accuracy | 63/63 | 21/21 |
+| Escalation precision / recall (positive = gap) | 1.000 / 1.000 | 1.000 / 1.000 |
+| Answers citing an expected source document | 41/41 | 7/7 |
+| Retrieval Hit@1 / Recall@5 / MRR (domain-aware) | 0.976 / 1.000 / 0.988 | 0.857 / 1.000 / 0.929 |
+
+On dev, any threshold from 0.20 to 0.40 gives the same combined result.
+Above 0.40 it starts escalating answerable questions. Per-question detail for
+both splits, including every generated answer, is written to
+`data/eval/calibration_report.json`.
+
+**Known limitations:**
+
+- **Small sets.** With 7 answerable and 10 gap items, the held-out results
+  are indicative, not statistically strong. A perfect score here does not
+  mean the agent never errs. The formal evaluation is in Milestone 7.
+- **The threshold alone cannot separate gaps from answers.** One held-out gap
+  (ho-02, Outlook password prompts, 0.45) scores above some answerable
+  questions. It escalates only because of the LLM check, so both layers
+  are needed.
+- **Fixes made in this milestone, all on dev evidence:**
+  - Ethics, office facilities and relocation were added to the router's
+    topic list.
+  - The search query is used verbatim on the first turn.
+  - The answer prompt quotes its evidence before deciding.
+  - `pay-tax-declaration` was edited to use the spec's wording "tax
+    declaration" (see `docs/data-sources.md`).
+  - The relocation question that exposed the routing gap ("book movers…")
+    was moved from held-out to dev (`gap-11`) and replaced with a fresh
+    relocation question, so held-out stays untouched by tuning.
+- **Domain filter.** On both splits it neither helps nor hurts (identical
+  metrics). It is kept so IT and HR content with similar wording does not
+  compete, and the fallback to the whole KB means a wrong domain hint cannot
+  by itself cause an escalation.
+
 ## Run
 
 ```powershell
-python -m smartdesk        # interactive CLI; prints the detected intent for each message
+python -m smartdesk        # interactive CLI; needs the index (python -m smartdesk.kb.ingest)
+                           # prints intent, domain, top similarity and any escalation reason
 ```
 
 ## Tests
@@ -159,12 +257,13 @@ src/smartdesk/
   observability.py   Langfuse client and callbacks
   redaction.py       secret / PII masking
   graph/             LangGraph state, prompts and workflow
+  rag/               retrieval, grounded answers + citations, abstention calibration
   kb/                KB catalogue, fact sheet, generation (Step A), chunking,
                      ChromaDB ingestion (Step B) and retrieval evaluation
   __main__.py        CLI entry point
 data/
   kb/                40 committed KB documents (Markdown + YAML front matter)
-  eval/              labelled evaluation set (never indexed)
+  eval/              labelled evaluation set (never indexed) and calibration report
   kb_generation_report.json   statistics from the last generation run
 tests/               pytest suite
 docs/

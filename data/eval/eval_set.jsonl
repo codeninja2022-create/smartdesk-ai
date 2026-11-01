@@ -60,3 +60,4 @@
 {"id": "greet-03", "category": "greeting", "question": "Thanks, that helped!", "expected_doc_ids": [], "expected_behavior": "greet"}
 {"id": "greet-04", "category": "greeting", "question": "Bye, have a nice day.", "expected_doc_ids": [], "expected_behavior": "greet"}
 {"id": "greet-05", "category": "greeting", "question": "Hello there, who am I talking to?", "expected_doc_ids": [], "expected_behavior": "greet"}
+{"id": "gap-11", "category": "gap", "question": "Can the company help me book movers for my shift to Bengaluru?", "expected_doc_ids": [], "expected_behavior": "escalate", "gap_id": "relocation"}

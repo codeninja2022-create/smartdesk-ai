@@ -22,7 +22,8 @@ from smartdesk.config import get_settings
 from smartdesk.kb.vectorstore import get_client, get_collection, search
 from smartdesk.llm import get_embeddings
 
-EVAL_PATH = Path("data/eval/eval_set.jsonl")
+EVAL_PATH = Path("data/eval/eval_set.jsonl")  # dev split: calibration and tuning
+HELDOUT_PATH = Path("data/eval/heldout/eval_set.jsonl")  # never used for tuning
 
 
 class EvalCategory(StrEnum):

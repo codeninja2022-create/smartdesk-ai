@@ -33,12 +33,15 @@ def get_collection(client: ClientAPI, name: str) -> Collection:
     )
 
 
-def search(collection: Collection, query_embedding: list[float], k: int = 5) -> list[SearchHit]:
+def search(
+    collection: Collection, query_embedding: list[float], k: int = 5, where: dict | None = None
+) -> list[SearchHit]:
     if collection.count() == 0:
         return []
     result = collection.query(
         query_embeddings=[query_embedding],
         n_results=min(k, collection.count()),
+        where=where,
         include=["documents", "metadatas", "distances"],
     )
     return [

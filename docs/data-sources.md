@@ -73,6 +73,14 @@ pinned revision when missing.
 - **One manual re-run:** `it-vpn-setup` was regenerated with `--only` after a
   review found it linked to an external download page. That review is also
   where the "URLs must come from the fact sheet" validation rule came from.
+- **One manual edit (Milestone 3):** `pay-tax-declaration` only used the term
+  "investment declaration". As a result the agent could not answer "How do I
+  submit my tax declaration?", one of the spec's example questions (§2.1.1).
+  The title, overview, submission section and FAQs were edited by hand to use
+  "tax declaration" and keep "investment declaration" as a synonym. The
+  facts are unchanged and the edited document still passes `validate_body`.
+  The topic brief in `catalog.py` and the fact sheet now use the same wording,
+  so a regeneration keeps the term.
 
 ## Knowledge base contents
 
@@ -100,17 +108,28 @@ them are dropped, generated text that mentions them is rejected, and
 | `relocation` | relocation assistance, moving allowance | "Is there a relocation allowance?" |
 | `sabbatical` | sabbaticals, long career breaks | "Can I take a six-month sabbatical?" |
 
-## Labelled evaluation set
+## Labelled evaluation sets
 
-`data/eval/eval_set.jsonl` contains 62 hand-written items. They live outside
-`data/kb/` and are never indexed.
+All items are hand-written. They live outside `data/kb/` and are never
+indexed. There are two splits:
 
-| Category | Items | Expected behaviour |
-|---|---|---|
-| `answerable` | 41 (at least one per KB document) | answer, citing `expected_doc_ids` |
-| `gap` | 10 (every gap, with paraphrases) | escalate (offer a ticket) |
-| `out_of_scope` | 6 (includes a prompt-injection attempt) | decline politely |
-| `greeting` | 5 | greet |
+- **Dev** (`data/eval/eval_set.jsonl`) is used for calibration and prompt
+  refinement.
+- **Held-out** (`data/eval/heldout/eval_set.jsonl`) is never used for tuning.
+  `tests/test_kb_data.py` checks that the two splits share no ids or
+  questions.
+
+| Category | Dev (63) | Held-out (21) | Expected behaviour |
+|---|---|---|---|
+| `answerable` | 41 (at least one per KB document) | 7 paraphrases | answer, citing `expected_doc_ids` |
+| `gap` | 11 (every deliberate gap, with paraphrases) | 10: 7 deliberate gaps plus 3 `unplanned:` topics the KB does not cover | escalate (offer a ticket) |
+| `out_of_scope` | 6 (includes a prompt-injection attempt) | 3 (two injection-style) | decline politely |
+| `greeting` | 5 | 1 | greet |
+
+`gap-11` ("book movers…") began as a held-out question. It exposed a routing
+gap, and relocation was then added to the router's topic list. The question
+was therefore moved to dev and replaced in held-out with a fresh relocation
+question (`ho-13`), so no held-out item has influenced tuning.
 
 Answerable questions are deliberately phrased differently from the documents'
 own headings. One label was corrected after the first retrieval run: `ans-24`

@@ -72,8 +72,8 @@ days before the start date.
 Payroll facts:
 - Pay day: last working day of each month; payslips in PeopleHub by the \
 1st of the next month.
-- Financial year April-March. Investment declaration in PeopleHub by \
-30 April; proof submission 1-31 January; choose old or new tax regime at \
+- Financial year April-March. Tax declaration (also called the investment \
+declaration) in PeopleHub by 30 April; proof submission 1-31 January; choose old or new tax regime at \
 declaration; Form 16 issued by 15 June.
 - Salary structure: basic 40% of CTC, HRA 50% of basic, special allowance, \
 employer PF 12% of basic, gratuity per statute, annual performance bonus \

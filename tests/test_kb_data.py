@@ -6,7 +6,14 @@ import pytest
 
 from smartdesk.kb.catalog import GAPS, TOPICS, find_gap_mentions
 from smartdesk.kb.documents import Domain, load_dir
-from smartdesk.kb.evaluate import EVAL_PATH, EvalCategory, RetrievalResult, compute_metrics, load_eval_set
+from smartdesk.kb.evaluate import (
+    EVAL_PATH,
+    HELDOUT_PATH,
+    EvalCategory,
+    RetrievalResult,
+    compute_metrics,
+    load_eval_set,
+)
 from smartdesk.kb.generate import validate_body
 
 KB_DIR = Path("data/kb")
@@ -59,6 +66,19 @@ def test_eval_set_covers_all_categories_and_gaps(eval_set):
 def test_eval_expected_doc_ids_exist(eval_set, docs):
     known = {d.doc_id for d in docs}
     assert {doc_id for item in eval_set for doc_id in item.expected_doc_ids} <= known
+
+
+def test_heldout_set_is_disjoint_from_dev_and_well_labelled(eval_set, docs):
+    heldout = load_eval_set(HELDOUT_PATH)
+    normalise = lambda q: " ".join(q.lower().split())
+    assert {i.id for i in heldout}.isdisjoint({i.id for i in eval_set})
+    assert {normalise(i.question) for i in heldout}.isdisjoint({normalise(i.question) for i in eval_set})
+    assert len({i.id for i in heldout}) == len(heldout)
+    assert {d for i in heldout for d in i.expected_doc_ids} <= {d.doc_id for d in docs}
+    known_gaps = {g.gap_id for g in GAPS}
+    # Deliberate gaps use their catalogue id; topics the KB happens not to cover are "unplanned:<topic>".
+    assert all(i.gap_id in known_gaps or i.gap_id.startswith("unplanned:") for i in heldout if i.gap_id)
+    assert KB_DIR.resolve() not in HELDOUT_PATH.resolve().parents
 
 
 def test_compute_metrics(eval_set):

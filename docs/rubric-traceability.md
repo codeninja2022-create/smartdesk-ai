@@ -75,7 +75,7 @@ Last updated: Milestone 6.
 | X1 | Hybrid search (dense + sparse + re-ranker) with demonstrable improvement. | Optional | Only with approval (CLAUDE.md); dense retrieval first. |
 | X2 | Multi-agent architecture with specialised IT and HR sub-agents. | No | Single agent agreed; needs approval to change. |
 | X3 | Evaluation pipeline (LangSmith, Ragas, DeepEval) with quantitative metrics. | Partial | Custom Recall@5 + escalation precision/recall (M7); Ragas/DeepEval optional. |
-| X4 | User-facing deployment (Streamlit, Gradio, Chainlit, or web app). | Yes | Chainlit UI (M8). |
+| X4 | User-facing deployment (Streamlit, Gradio, Chainlit, or web app). | Yes ✅ | Chainlit UI (M8): `chainlit run src/smartdesk/ui/app.py`; citations in side panels, Approve / Edit / Cancel buttons, ticket confirmation and status (D8.1–D8.6, `tests/test_ui_render.py`, `tests/test_async_session.py`, smoke check of all three flows in the M8 report). |
 | X5 | Caching (semantic cache, Redis, or LLM cache) for repeated queries. | No | — |
 | X6 | Advanced memory (long-term, cross-session memory via database or memory framework). | No | Needs approval; SQLite checkpoints are per session. |
 

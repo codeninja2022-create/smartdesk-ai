@@ -454,6 +454,29 @@ domain, top similarity and any escalation reason or Jira error. At an approval
 step, type `approve`, `cancel`, or describe a change. Without the `JIRA_*`
 variables the CLI still runs, and ticket requests explain that Jira is not configured.
 
+### Web UI (Chainlit)
+
+```powershell
+chainlit run src/smartdesk/ui/app.py     # from the repository root; opens http://localhost:8000
+```
+
+- Each chat is a new session (a new `thread_id`), shown in the welcome message;
+  resume it in the CLI with `--session`. **New Chat** starts another session,
+  which is how a different email is used (the email is locked per session).
+  Reloading the page also starts a new session.
+- Knowledge answers list their sources; each `doc_id` opens the cited document in
+  a side panel (for long documents, the cited section first). Chainlit opens the
+  panel automatically for a new answer; close it with the arrow.
+- A ticket review has **Approve**, **Edit** and **Cancel** buttons. Approve is
+  bound to the draft on screen (its `op_id`), so a button from an earlier version
+  cannot approve an edited draft. Typed replies work as in the CLI.
+- When several tickets match a status check, each one is a button.
+- Errors: a language-service or internal failure shows a red error message;
+  Jira problems are marked ⚠️ and say whether the ticket was created.
+- All turns run on one worker thread, one at a time, so concurrent users queue
+  (D8.1). Settings: `.chainlit/config.toml` (origins limited to localhost,
+  raw HTML off, file upload and message editing off).
+
 ## Tests
 
 ```powershell
@@ -482,7 +505,7 @@ Langfuse callback handler. The Langfuse client is created with a mask function
 bearer tokens, `password=`/`token=` values, email addresses, phone numbers and
 card numbers from trace inputs, outputs and metadata before they leave the process.
 
-The CLI attaches the same redaction to its log handlers (`install_log_redaction`),
+The CLI and the Chainlit app attach the same redaction to their log handlers (`install_log_redaction`),
 so Jira error bodies that echo an email or token are masked in logs too.
 
 ## Project layout
@@ -496,12 +519,14 @@ src/smartdesk/
   guardrails.py      input cleaning and length limits
   sessions.py        session (checkpoint) maintenance CLI
   graph/             LangGraph agent: workflow (routing), tickets (slot-filling, interrupt
-                     approval, submit), status, identity (email lock), session (ChatSession),
+                     approval, submit), status, identity (email lock), session (ChatSession,
+                     AsyncChatSession for the UI),
                      checkpoint (SqliteSaver and its maintenance), state and prompts
   rag/               retrieval, grounded answers + citations, abstention calibration
   tickets/           Jira adapter, SQLite store, idempotent ticket service, ticket CLI
   kb/                KB catalogue, fact sheet, generation (Step A), chunking,
                      ChromaDB ingestion (Step B) and retrieval evaluation
+  ui/                Chainlit UI: app (handlers), render (what a turn shows)
   __main__.py        CLI entry point
 data/
   kb/                40 committed KB documents (Markdown + YAML front matter)

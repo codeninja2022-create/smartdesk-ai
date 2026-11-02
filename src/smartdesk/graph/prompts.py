@@ -177,6 +177,7 @@ NOTHING_TO_CANCEL = "There's nothing in progress to cancel. How else can I help?
 TICKET_CREATED = "Your ticket has been created: {key}\nYou can track it here: {url}"
 TICKET_ALREADY_CREATED = "This ticket was already created earlier: {key}\nYou can track it here: {url}"
 TICKET_NOT_APPROVED = "I can't create a ticket that you haven't approved. Let's review it again."
+NO_PENDING_APPROVAL = "That ticket is no longer awaiting approval, so nothing was changed."
 
 TICKET_ERROR = {
     "jira_unavailable": (

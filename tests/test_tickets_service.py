@@ -266,7 +266,10 @@ def test_get_ticket_returns_status_and_comments(jira, make_service):
     jira.comments[key] = [{
         "author": {"displayName": "Sam (IT)"},
         "created": "2026-11-01T11:00:00.000+0000",
-        "body": {"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Try a new cable."}]}]},
+        "body": {
+            "type": "doc",
+            "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Try a new cable."}]}],
+        },
     }]
 
     ticket = make_service().get_ticket(EMAIL, key.lower())

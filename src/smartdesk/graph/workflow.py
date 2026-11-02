@@ -20,7 +20,6 @@ The ticket nodes live in `graph/tickets.py` and the status node in
 from collections.abc import Callable
 from typing import Any, Protocol
 
-from smartdesk.llm import StructuredLLM
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
@@ -30,6 +29,7 @@ from smartdesk.graph import prompts, tickets
 from smartdesk.graph.identity import find_email_claim, mask_email
 from smartdesk.graph.state import Intent, IntentClassification, SmartDeskState
 from smartdesk.graph.status import CHECK_STATUS, choice_number, make_status_node
+from smartdesk.llm import StructuredLLM
 from smartdesk.rag import answer as rag_answer
 from smartdesk.rag.retriever import RetrievedChunk
 from smartdesk.tickets.service import TicketService
@@ -123,7 +123,10 @@ def _make_classify_node(llm: StructuredLLM, router_history_turns: int) -> Callab
         # Plain answers to SmartDesk's own question need no LLM call.
         answered = (
             (awaiting == "email" and email["email_event"] in ("captured", "invalid"))
-            or (awaiting == "ticket_choice" and choice_number(question, len(state.get("status_candidates") or [])) is not None)
+            or (
+                awaiting == "ticket_choice"
+                and choice_number(question, len(state.get("status_candidates") or [])) is not None
+            )
             or (awaiting == "held_draft" and tickets.held_draft_decision(question) is not None)
         )
         if answered:
@@ -317,7 +320,9 @@ def build_graph(
         _route_by_intent,
         {RETRIEVE: RETRIEVE, tickets.COLLECT_TICKET: tickets.COLLECT_TICKET, **{n: n for n in replies}},
     )
-    builder.add_conditional_edges(RETRIEVE, _route_after_retrieve, {ESCALATE: ESCALATE, GENERATE_ANSWER: GENERATE_ANSWER})
+    builder.add_conditional_edges(
+        RETRIEVE, _route_after_retrieve, {ESCALATE: ESCALATE, GENERATE_ANSWER: GENERATE_ANSWER}
+    )
     builder.add_conditional_edges(GENERATE_ANSWER, _route_after_answer, {ESCALATE: ESCALATE, END: END})
     builder.add_conditional_edges(
         tickets.COLLECT_TICKET, tickets.route_after_collect, {END: END, tickets.PRESENT_TICKET: tickets.PRESENT_TICKET}

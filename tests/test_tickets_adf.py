@@ -23,8 +23,12 @@ def test_adf_to_text_handles_lists_mentions_and_unknown_nodes():
                 {"type": "text", "text": " please try:"},
             ]},
             {"type": "orderedList", "content": [
-                {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Reseat the cable"}]}]},
-                {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Update drivers"}]}]},
+                {"type": "listItem", "content": [
+                    {"type": "paragraph", "content": [{"type": "text", "text": "Reseat the cable"}]},
+                ]},
+                {"type": "listItem", "content": [
+                    {"type": "paragraph", "content": [{"type": "text", "text": "Update drivers"}]},
+                ]},
             ]},
             {"type": "mysteryNode", "content": [{"type": "text", "text": "still shown"}]},
         ],

@@ -92,7 +92,8 @@ def main(
                 return 1
             before = db.stat().st_size
             removed = compact(saver)
-            print(f"Removed {removed} checkpoints; {db.name}: {before / 1024:.0f} KB -> {db.stat().st_size / 1024:.0f} KB.")
+            after = db.stat().st_size
+            print(f"Removed {removed} checkpoints; {db.name}: {before / 1024:.0f} KB -> {after / 1024:.0f} KB.")
             return 0
 
         if args.session:

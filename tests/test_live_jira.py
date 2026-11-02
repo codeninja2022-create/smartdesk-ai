@@ -54,7 +54,11 @@ def _cleanup(service, key: str) -> None:
         return
     except JiraError as exc:
         delete_error = exc
-    done = [t for t in service.client.get_transitions(key) if (t.get("to") or {}).get("statusCategory", {}).get("key") == "done"]
+    done = [
+        t
+        for t in service.client.get_transitions(key)
+        if (t.get("to") or {}).get("statusCategory", {}).get("key") == "done"
+    ]
     if not done:
         pytest.fail(f"Could not delete {key} ({delete_error}) and no Done transition exists; clean it up by hand")
     service.client.transition_issue(key, done[0]["id"])

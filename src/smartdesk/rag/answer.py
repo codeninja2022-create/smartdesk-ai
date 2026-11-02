@@ -10,10 +10,10 @@ passages is treated as ungrounded.
 import re
 from dataclasses import dataclass
 
-from smartdesk.llm import StructuredLLM
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
+from smartdesk.llm import StructuredLLM
 from smartdesk.rag import prompts
 
 _CITATION = re.compile(r"\[(\d+)\]")

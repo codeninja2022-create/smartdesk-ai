@@ -101,7 +101,9 @@ def _unique_docs(chunks) -> list[str]:
 
 
 def run_item(item: EvalItem, classifier, llm, retriever: Retriever, unfiltered: Retriever) -> ItemResult:
-    route = classifier.invoke([SystemMessage(content=prompts.INTENT_SYSTEM_PROMPT), HumanMessage(content=item.question)])
+    route = classifier.invoke(
+        [SystemMessage(content=prompts.INTENT_SYSTEM_PROMPT), HumanMessage(content=item.question)]
+    )
     assert isinstance(route, IntentClassification)
     query = item.question  # single-turn, so the agent uses the question verbatim (see workflow)
     domain = None if route.domain == "unknown" else route.domain

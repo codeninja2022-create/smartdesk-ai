@@ -16,12 +16,12 @@ import re
 from collections.abc import Callable
 from typing import Any
 
-from smartdesk.llm import StructuredLLM
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
 from smartdesk.graph import prompts
 from smartdesk.graph.state import SmartDeskState
+from smartdesk.llm import StructuredLLM
 from smartdesk.tickets.models import (
     JiraAuthError,
     JiraError,
@@ -104,7 +104,9 @@ def make_status_node(
     def llm_choice(text: str, candidates: list[dict]) -> dict | None:
         result = chooser.invoke([
             SystemMessage(content=prompts.TICKET_CHOICE_SYSTEM_PROMPT),
-            HumanMessage(content=f"Tickets:\n{render_listing(candidates)}\n\nEmployee message:\n<message>\n{text}\n</message>"),
+            HumanMessage(
+                content=f"Tickets:\n{render_listing(candidates)}\n\nEmployee message:\n<message>\n{text}\n</message>"
+            ),
         ])
         assert isinstance(result, TicketChoice)
         return candidates[result.number - 1] if 1 <= result.number <= len(candidates) else None

@@ -3,7 +3,10 @@ from tests.conftest import make_chunk
 
 
 def chunks(*doc_ids):
-    return [make_chunk(doc_id, title=f"Title {doc_id}", section=f"Section {i}").to_dict() for i, doc_id in enumerate(doc_ids, 1)]
+    return [
+        make_chunk(doc_id, title=f"Title {doc_id}", section=f"Section {i}").to_dict()
+        for i, doc_id in enumerate(doc_ids, 1)
+    ]
 
 
 def answer(text, cited=(), sufficient=True):

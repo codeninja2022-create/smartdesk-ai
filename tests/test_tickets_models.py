@@ -27,7 +27,9 @@ def test_email_is_trimmed_and_lowercased():
     assert make_draft().email == "jane.doe@novatech.example"
 
 
-@pytest.mark.parametrize("email", ["", "jane", "jane@", "@novatech.example", "jane@novatech", "ja ne@x.com", "a@b@c.com"])
+@pytest.mark.parametrize(
+    "email", ["", "jane", "jane@", "@novatech.example", "jane@novatech", "ja ne@x.com", "a@b@c.com"]
+)
 def test_invalid_emails_are_rejected(email):
     with pytest.raises(ValueError):
         normalize_email(email)
@@ -70,7 +72,8 @@ def test_category_and_op_labels():
 
 
 def test_op_id_is_stable_for_the_same_session_and_draft():
-    assert derive_op_id("thread-1", make_draft()) == derive_op_id("thread-1", make_draft(email="jane.doe@novatech.example"))
+    same_email = make_draft(email="jane.doe@novatech.example")
+    assert derive_op_id("thread-1", make_draft()) == derive_op_id("thread-1", same_email)
 
 
 def test_op_id_changes_with_session_or_content():

@@ -70,7 +70,9 @@ def test_eval_expected_doc_ids_exist(eval_set, docs):
 
 def test_heldout_set_is_disjoint_from_dev_and_well_labelled(eval_set, docs):
     heldout = load_eval_set(HELDOUT_PATH)
-    normalise = lambda q: " ".join(q.lower().split())
+    def normalise(question: str) -> str:
+        return " ".join(question.lower().split())
+
     assert {i.id for i in heldout}.isdisjoint({i.id for i in eval_set})
     assert {normalise(i.question) for i in heldout}.isdisjoint({normalise(i.question) for i in eval_set})
     assert len({i.id for i in heldout}) == len(heldout)

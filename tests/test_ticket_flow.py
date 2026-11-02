@@ -108,7 +108,9 @@ def test_all_fields_in_one_message_go_straight_to_review():
 
 def test_category_is_inferred_from_the_conversation():
     text = "My payslip shows the wrong tax deduction"
-    update = TicketFieldsUpdate(description="Payslip shows the wrong tax deduction.", summary="Wrong tax on payslip", category="HR")
+    update = TicketFieldsUpdate(
+        description="Payslip shows the wrong tax deduction.", summary="Wrong tax on payslip", category="HR"
+    )
     session = make_session(ticket_llm({text: I.PROVIDE_INFO}, {text: update}))
     session.send(RAISE)
     session.send(text)
@@ -332,7 +334,9 @@ def test_escalation_accepted_with_a_draft_on_hold_then_new_starts_from_the_quest
             return GroundedAnswer(evidence="none", sufficient=False, answer="", cited_passages=[])
         return GroundedAnswer(evidence='[1] "..."', sufficient=True, answer="Do the thing [1].", cited_passages=[1])
 
-    llm = ticket_llm({question: I.KNOWLEDGE_QUESTION, "yes please": I.CREATE_TICKET}, {"yes please": headset}, answer_fn=answer)
+    llm = ticket_llm(
+        {question: I.KNOWLEDGE_QUESTION, "yes please": I.CREATE_TICKET}, {"yes please": headset}, answer_fn=answer
+    )
     session = make_session(llm)
     hold_monitor_draft(session)
     session.send(question)  # escalates

@@ -23,6 +23,10 @@ Last updated: Milestone 6.
 | K15 | Redaction is pattern-based (emails, keys, tokens, phone and card numbers). | Names, addresses and free-text personal details in messages are not masked in traces. | Add an NER-based redactor if traces must be free of all personal data. | Post-submission |
 | K16 | Dense retrieval only; no hybrid search or re-ranking (optional bonus, needs approval). | Retrieval relies on embeddings alone; one held-out gap outscored answerable questions. | Hybrid search with a re-ranker, only with approval. | Post-submission |
 | K17 | Architecture diagram, demo script walkthrough and recording are not done yet. | Submission deliverables DEL-3 and DEL-4 are open. | Mermaid diagram in the README; 3–5 minute recording of the three flows. | M9 |
-| K19 | Ruff (`E`, `F`, `I`) reports 50 findings: 45 lines over 120 characters (22 in `kb/catalog.py`), 4 unsorted import blocks, 1 lambda assignment; no pyflakes findings. | Style only; no unused or undefined names. | `ruff check --fix` for imports, then wrap long lines. | Next (needs approval) |
 
-**Fixed before the M6 commit** (removed above, kept here until committed): K11, no fallback model (`.env.example` now sets `gpt-4o`; `test_live_fallback_model_returns_structured_output`); K2, the generic summary "Support ticket request" (`test_no_title_is_kept_before_the_issue_is_described`); K18, "new" after a re-asked held-draft question (`test_new_after_the_held_draft_question_was_asked_again_starts_from_the_original_request`).
+## Resolved
+
+- K2 (M6): generic "Support ticket request" summary; `test_no_title_is_kept_before_the_issue_is_described`.
+- K11 (M6): no fallback model; `.env.example` sets `gpt-4o`; `test_live_fallback_model_returns_structured_output`.
+- K18 (M6): "new" after a re-asked held-draft question; `test_new_after_the_held_draft_question_was_asked_again_starts_from_the_original_request`.
+- K19 ("Style: ruff lint fixes"): 50 ruff findings fixed; `ruff check src tests` passes.

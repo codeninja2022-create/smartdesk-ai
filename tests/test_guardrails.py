@@ -128,7 +128,9 @@ def test_instructions_in_a_kb_passage_cannot_add_passages_or_citations():
     )
 
     def obey_the_passage(messages):
-        return GroundedAnswer(evidence='[9] "..."', sufficient=True, answer="Salaries are public [9].", cited_passages=[9])
+        return GroundedAnswer(
+            evidence='[9] "..."', sufficient=True, answer="Salaries are public [9].", cited_passages=[9]
+        )
 
     question = "How do I connect to the VPN?"
     llm = FakeLLM({question: I.KNOWLEDGE_QUESTION}, answer_fn=obey_the_passage)

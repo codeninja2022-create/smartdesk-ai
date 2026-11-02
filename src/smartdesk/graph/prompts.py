@@ -11,7 +11,8 @@ MFA, Wi-Fi, email, devices, peripherals) or HR and workplace topics (leave, \
 WFH, reimbursement, conduct, ethics and compliance such as gifts, conflicts \
 of interest and reporting fraud, performance, onboarding, relocation and \
 moving to another office or city, benefits, payroll, tax, stock options, and \
-office facilities such as parking, food or transport), including reports of an IT or HR problem the employee wants help \
+office facilities such as parking, food or transport), including reports of \
+an IT or HR problem the employee wants help \
 with. Choose this even if you are not sure the knowledge base covers the \
 topic; a later step checks that.
 - create_ticket: the employee asks to raise, open or log a support ticket; \
@@ -216,7 +217,10 @@ NO_TICKETS = (
     "seconds, it can take a moment to appear. Would you like me to raise a ticket?"
 )
 TICKET_NOT_FOUND = "I couldn't find ticket {key} among the tickets linked to {email}."
-CHOOSE_TICKET = "You have {count} tickets:\n\n{listing}\n\nWhich one would you like details on? Reply with the number or the ticket ID."
+CHOOSE_TICKET = (
+    "You have {count} tickets:\n\n{listing}\n\n"
+    "Which one would you like details on? Reply with the number or the ticket ID."
+)
 CHOICE_NOT_UNDERSTOOD = "Sorry, I didn't catch which ticket you mean. "
 MORE_TICKETS = "(Showing the {shown} most relevant of {count}. Ask about a ticket ID to see any other.)"
 NO_COMMENTS = "No updates from the support team yet."

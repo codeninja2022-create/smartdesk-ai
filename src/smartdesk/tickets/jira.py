@@ -168,7 +168,9 @@ class JiraClient:
                 response = self._http.request(method, url, **kwargs)
             except (httpx.TimeoutException, httpx.NetworkError, httpx.RemoteProtocolError) as exc:
                 if last_attempt:
-                    raise JiraUnavailable(f"Jira read failed after {attempt + 1} attempts: {type(exc).__name__}") from exc
+                    raise JiraUnavailable(
+                        f"Jira read failed after {attempt + 1} attempts: {type(exc).__name__}"
+                    ) from exc
                 self._backoff(attempt, None)
                 continue
 

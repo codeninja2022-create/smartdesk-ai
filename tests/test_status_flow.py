@@ -54,7 +54,9 @@ def test_no_tickets_says_so_and_offers_a_ticket():
 
 def test_single_ticket_shows_status_link_and_support_comments():
     service = FakeTicketService()
-    service.add_ticket(EMAIL, "Monitor flickers", status="In Progress", status_category="In Progress", comments=[COMMENT])
+    service.add_ticket(
+        EMAIL, "Monitor flickers", status="In Progress", status_category="In Progress", comments=[COMMENT]
+    )
     result = make_session(status_llm(), service).send(STATUS_WITH_EMAIL)
 
     assert result.text.splitlines()[:4] == [
@@ -79,7 +81,8 @@ def test_multiple_tickets_are_listed_open_first_and_selected_by_number():
     result = session.send(STATUS_WITH_EMAIL)
     assert result.state["awaiting"] == "ticket_choice"
     assert [t["key"] for t in result.state["status_candidates"]] == ["KAN-3", "KAN-1", "KAN-2"]  # Done last
-    assert result.text == prompts.CHOOSE_TICKET.format(count=3, listing=render_listing(result.state["status_candidates"]))
+    listing = render_listing(result.state["status_candidates"])
+    assert result.text == prompts.CHOOSE_TICKET.format(count=3, listing=listing)
 
     result = session.send("2")
     assert result.text.startswith("KAN-1: VPN drops every hour")
@@ -134,7 +137,9 @@ def test_ticket_key_in_the_message_is_looked_up_for_the_session_email_only():
     assert service.get_calls == [(EMAIL, "KAN-1")]
 
 
-@pytest.mark.parametrize(("error", "code"), [(JiraUnavailable("down"), "jira_unavailable"), (JiraAuthError("401"), "jira_auth")])
+@pytest.mark.parametrize(
+    ("error", "code"), [(JiraUnavailable("down"), "jira_unavailable"), (JiraAuthError("401"), "jira_auth")]
+)
 def test_lookup_errors_get_a_clear_message(error, code):
     result = make_session(status_llm(), FakeTicketService(read_errors=[error])).send(STATUS_WITH_EMAIL)
     assert result.text == prompts.STATUS_ERROR[code]

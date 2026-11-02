@@ -18,7 +18,6 @@ import re
 from collections.abc import Callable
 from typing import Any, Literal
 
-from smartdesk.llm import StructuredLLM
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END
@@ -28,6 +27,7 @@ from pydantic import BaseModel, Field, ValidationError
 from smartdesk.graph import prompts
 from smartdesk.graph.session import normalize_reply
 from smartdesk.graph.state import Intent, SmartDeskState
+from smartdesk.llm import StructuredLLM
 from smartdesk.tickets.models import (
     JiraAuthError,
     JiraError,
@@ -66,7 +66,9 @@ _CATEGORY_REPLY = re.compile(r"^\W*(?:it'?s\s+)?(?:an?\s+)?(it|hr)(?:\s+(?:issue
 class TicketFieldsUpdate(BaseModel):
     """Structured output of the ticket extractor: the complete updated draft."""
 
-    description: str = Field(default="", description="The issue, summarised from what the employee said. Empty if not described yet.")
+    description: str = Field(
+        default="", description="The issue, summarised from what the employee said. Empty if not described yet."
+    )
     summary: str = Field(default="", description="One-line title, at most 80 characters.")
     category: Literal["IT", "HR", "unknown"] = Field(default="unknown")
     priority: Literal["Low", "Medium", "High", "Critical", "none"] = Field(default="none")
@@ -328,7 +330,8 @@ def review_ticket(state: SmartDeskState, config: RunnableConfig) -> Command:
         return Command(goto=PRESENT_TICKET, update=update)
 
     if action == "cancel":
-        return Command(goto=END, update={**_cleared_ticket(), "messages": [AIMessage(content=prompts.TICKET_CANCELLED)]})
+        cancelled = AIMessage(content=prompts.TICKET_CANCELLED)
+        return Command(goto=END, update={**_cleared_ticket(), "messages": [cancelled]})
 
     # Free text (a correction, a question, anything else): route it like a new turn.
     text = str(decision.get("text", "")) if isinstance(decision, dict) else str(decision)

@@ -17,6 +17,7 @@ from tests.jira_fake import BASE_URL, FakeJira
 
 EMAIL = "jane.doe@novatech.example"
 OTHER = "john@novatech.example"
+OP1, OP2 = "1" * 64, "2" * 64  # derive_op_id produces 64 hex characters
 
 
 def make_draft(**overrides) -> TicketDraft:
@@ -70,27 +71,27 @@ def test_create_ticket_returns_real_key_and_url(jira, store, make_service):
 
 
 def test_issue_fields_carry_email_in_description_and_mapped_priority(jira, make_service):
-    make_service().create_ticket(make_draft(), "op-1")
+    make_service().create_ticket(make_draft(), OP1)
     assert json.loads(jira.requests[0].content)["fields"]["priority"] == {"name": "Highest"}  # Critical -> Highest
     paragraph = jira.issues["KAN-1"]["fields"]["description"]["content"][0]["content"]
     assert paragraph[0]["text"] == f"Employee email: {EMAIL}"
 
 
 def test_priority_is_omitted_when_not_given(jira, make_service):
-    make_service().create_ticket(make_draft(priority=None), "op-1")
+    make_service().create_ticket(make_draft(priority=None), OP1)
     assert b"priority" not in jira.requests[0].content
 
 
 def test_extra_labels_are_added(jira, make_service):
-    make_service(extra_labels=["sd-live-test"]).create_ticket(make_draft(), "op-1")
+    make_service(extra_labels=["sd-live-test"]).create_ticket(make_draft(), OP1)
     assert "sd-live-test" in jira.issues["KAN-1"]["fields"]["labels"]
 
 
 def test_duplicate_submission_makes_no_jira_call(jira, make_service):
     service = make_service()
-    first = service.create_ticket(make_draft(), "op-1")
+    first = service.create_ticket(make_draft(), OP1)
     calls = len(jira.requests)
-    second = service.create_ticket(make_draft(), "op-1")
+    second = service.create_ticket(make_draft(), OP1)
 
     assert second.key == first.key and second.already_existed is True
     assert len(jira.requests) == calls
@@ -99,12 +100,12 @@ def test_duplicate_submission_makes_no_jira_call(jira, make_service):
 
 def test_timeout_then_reconcile_finds_issue_without_reposting(jira, store, make_service):
     jira.create_script = ["timeout_after_create"]
-    ticket = make_service().create_ticket(make_draft(), "op-1")
+    ticket = make_service().create_ticket(make_draft(), OP1)
 
     assert ticket.key == "KAN-1" and ticket.already_existed is False
     assert jira.posts_to_create() == 1
     assert len(jira.issues) == 1
-    assert store.get_op("op-1").status == "created"
+    assert store.get_op(OP1).status == "created"
     assert store.ticket_keys(EMAIL) == ["KAN-1"]
 
 
@@ -115,14 +116,14 @@ def test_reconcile_polls_through_search_lag(jira, make_service):
     service = make_service(reconcile_delay_seconds=2.0)
     service._sleep = sleeps.append
 
-    assert service.create_ticket(make_draft(), "op-1").key == "KAN-1"
+    assert service.create_ticket(make_draft(), OP1).key == "KAN-1"
     assert jira.posts_to_create() == 1
     assert sleeps == [2.0, 2.0]
 
 
 def test_timeout_with_nothing_created_retries_once_after_reconciling(jira, make_service):
     jira.create_script = ["timeout_before_create", "ok"]
-    ticket = make_service().create_ticket(make_draft(), "op-1")
+    ticket = make_service().create_ticket(make_draft(), OP1)
 
     assert ticket.key == "KAN-1"
     assert jira.posts_to_create() == 2
@@ -132,7 +133,7 @@ def test_timeout_with_nothing_created_retries_once_after_reconciling(jira, make_
 
 def test_500_after_create_is_reconciled_not_reposted(jira, make_service):
     jira.create_script = ["500_after_create"]
-    assert make_service().create_ticket(make_draft(), "op-1").key == "KAN-1"
+    assert make_service().create_ticket(make_draft(), OP1).key == "KAN-1"
     assert jira.posts_to_create() == 1
 
 
@@ -140,14 +141,14 @@ def test_exhausted_attempts_raise_uncertain_and_next_call_reconciles_first(jira,
     jira.create_script = ["timeout_before_create", "timeout_before_create"]
     service = make_service(max_create_attempts=2)
     with pytest.raises(TicketCreationUncertain):
-        service.create_ticket(make_draft(), "op-1")
-    op = store.get_op("op-1")
+        service.create_ticket(make_draft(), OP1)
+    op = store.get_op(OP1)
     assert (op.status, op.attempts) == ("unknown", 2)
     assert jira.posts_to_create() == 2
 
     # The issue from an earlier attempt shows up later: the next call must find it, not post again.
-    jira.add_issue(["smartdesk", op_label("op-1"), employee_label(EMAIL), "sd-cat-it"])
-    ticket = service.create_ticket(make_draft(), "op-1")
+    jira.add_issue(["smartdesk", op_label(OP1), employee_label(EMAIL), "sd-cat-it"])
+    ticket = service.create_ticket(make_draft(), OP1)
     assert ticket.already_existed is True
     assert jira.posts_to_create() == 2
 
@@ -156,10 +157,10 @@ def test_unknown_op_with_no_issue_posts_again_after_reconciling(jira, store, mak
     jira.create_script = ["timeout_before_create", "timeout_before_create", "ok"]
     service = make_service(max_create_attempts=2)
     with pytest.raises(TicketCreationUncertain):
-        service.create_ticket(make_draft(), "op-1")
+        service.create_ticket(make_draft(), OP1)
     searches_before = len(jira.searches())
 
-    ticket = service.create_ticket(make_draft(), "op-1")
+    ticket = service.create_ticket(make_draft(), OP1)
     assert ticket.key == "KAN-1"
     assert len(jira.searches()) > searches_before  # reconciled before the third POST
     assert jira.posts_to_create() == 3
@@ -167,19 +168,19 @@ def test_unknown_op_with_no_issue_posts_again_after_reconciling(jira, store, mak
 
 def test_stale_pending_op_is_reconciled_first(jira, store, make_service):
     # Simulates a crash after the POST was counted but before its result was stored.
-    store.claim_op("op-1", EMAIL)
-    store.record_attempt("op-1")
-    jira.add_issue(["smartdesk", op_label("op-1")])
+    store.claim_op(OP1, EMAIL)
+    store.record_attempt(OP1)
+    jira.add_issue(["smartdesk", op_label(OP1)])
 
-    ticket = make_service(in_flight_seconds=0).create_ticket(make_draft(), "op-1")
+    ticket = make_service(in_flight_seconds=0).create_ticket(make_draft(), OP1)
     assert ticket.key == "KAN-1" and ticket.already_existed is True
     assert jira.posts_to_create() == 0
 
 
 def test_recent_pending_op_is_treated_as_in_flight(jira, store, make_service):
-    store.claim_op("op-1", EMAIL)
+    store.claim_op(OP1, EMAIL)
     with pytest.raises(TicketCreationUncertain, match="already being created"):
-        make_service(in_flight_seconds=60).create_ticket(make_draft(), "op-1")
+        make_service(in_flight_seconds=60).create_ticket(make_draft(), OP1)
     assert jira.requests == []
 
 
@@ -188,27 +189,37 @@ def test_definite_failure_marks_failed_and_allows_retry(jira, store, make_servic
     jira.create_script = [action, "ok"]
     service = make_service()
     with pytest.raises(error):
-        service.create_ticket(make_draft(), "op-1")
-    assert store.get_op("op-1").status == "failed"
+        service.create_ticket(make_draft(), OP1)
+    assert store.get_op(OP1).status == "failed"
     assert jira.searches() == []  # nothing ambiguous, so no reconciliation needed
 
-    assert service.create_ticket(make_draft(), "op-1").key == "KAN-1"
+    assert service.create_ticket(make_draft(), OP1).key == "KAN-1"
     assert jira.posts_to_create() == 2
 
 
+def test_failed_reconcile_search_is_uncertain_not_unavailable(jira, store, make_service):
+    # A POST may have created the issue; if Jira cannot be searched, "not created" would be a lie.
+    jira.create_script = ["timeout_after_create"]
+    jira.read_script = ["timeout"] * 10
+    with pytest.raises(TicketCreationUncertain):
+        make_service(max_create_attempts=1).create_ticket(make_draft(), OP1)
+    assert store.get_op(OP1).status == "unknown"
+    assert jira.posts_to_create() == 1
+
+
 def test_reconcile_keeps_the_oldest_of_several_matches(jira, store, make_service):
-    jira.add_issue([op_label("op-1")])
-    jira.add_issue([op_label("op-1")])
-    store.claim_op("op-1", EMAIL)
-    store.mark_unknown("op-1", "ReadTimeout")
-    assert make_service().create_ticket(make_draft(), "op-1").key == "KAN-1"
+    jira.add_issue([op_label(OP1)])
+    jira.add_issue([op_label(OP1)])
+    store.claim_op(OP1, EMAIL)
+    store.mark_unknown(OP1, "ReadTimeout")
+    assert make_service().create_ticket(make_draft(), OP1).key == "KAN-1"
 
 
 def test_op_id_for_another_email_is_rejected(store, make_service):
-    store.claim_op("op-1", OTHER)
-    store.mark_created("op-1", "KAN-1", "IT")
+    store.claim_op(OP1, OTHER)
+    store.mark_created(OP1, "KAN-1", "IT")
     with pytest.raises(ValueError):
-        make_service().create_ticket(make_draft(), "op-1")
+        make_service().create_ticket(make_draft(), OP1)
 
 
 # --- lookup ---

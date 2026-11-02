@@ -57,6 +57,9 @@ Then put your OpenAI key and Jira credentials in `.env`.
 | `SMARTDESK_LLM_TEMPERATURE` | no | `0` | Sampling temperature |
 | `SMARTDESK_LLM_TIMEOUT_SECONDS` | no | `30` | Per-request timeout |
 | `SMARTDESK_LLM_MAX_RETRIES` | no | `2` | Client retries with exponential backoff |
+| `SMARTDESK_LLM_FALLBACK_MODEL` | no | blank (`.env.example`: `gpt-4o`) | Second model tried after the retries; blank = a safe canned reply (see [Reliability and guardrails](#reliability-and-guardrails)) |
+| `SMARTDESK_ROUTER_HISTORY_TURNS` | no | `4` | Recent employee turns the intent router sees per call (stored history is never trimmed) |
+| `SMARTDESK_MAX_INPUT_CHARS` | no | `2000` | Longer messages are rejected with a reply, before any LLM call |
 | `LANGFUSE_PUBLIC_KEY` | no | — | Langfuse tracing; disabled when blank |
 | `LANGFUSE_SECRET_KEY` | no | — | Langfuse tracing; disabled when blank |
 | `LANGFUSE_HOST` (or `LANGFUSE_BASE_URL`) | no | `https://cloud.langfuse.com` | Langfuse server |
@@ -74,7 +77,7 @@ Then put your OpenAI key and Jira credentials in `.env`.
 | `JIRA_MAX_RETRIES` | no | `2` | Retries for reads (GET/search) only |
 | `JIRA_MAX_CREATE_ATTEMPTS` | no | `2` | Create POSTs per call, each retry only after reconciling |
 | `JIRA_RECONCILE_POLLS` / `JIRA_RECONCILE_DELAY_SECONDS` | no | `3` / `2` | Searches for a timed-out create |
-| `SMARTDESK_DB_PATH` | no | `data/smartdesk.db` | SQLite ticket mapping and idempotency (git-ignored) |
+| `SMARTDESK_DB_PATH` | no | `data/smartdesk.db` | SQLite conversation checkpoints, ticket mapping and idempotency (git-ignored; holds personal data, see [Local data and privacy](#local-data-and-privacy)) |
 
 Secrets are only read from the environment. `.env` is git-ignored.
 
@@ -293,7 +296,7 @@ or `failed`, and the op id travels to Jira as the `sd-op-` label:
 ```
 op created                   -> return the existing ticket, no Jira call
 op pending, recent           -> another submission is in flight: report "being created"
-op pending (stale) / unknown -> reconcile first
+op pending (stale) / unknown -> take it over (compare-and-set), then reconcile first
 op new / failed              -> claim it (BEGIN IMMEDIATE), then POST
 
 POST /issue
@@ -305,7 +308,12 @@ POST /issue
        found -> created (the oldest wins if several match)
        none  -> POST again, at most JIRA_MAX_CREATE_ATTEMPTS per call
   still unknown -> TicketCreationUncertain; the next call reconciles before posting
+  reconcile search itself fails -> TicketCreationUncertain (never "not created")
 ```
+
+So `JiraUnavailable`, `JiraAuthError` or `JiraRequestRejected` from
+`create_ticket` always mean nothing was created; only `TicketCreationUncertain`
+means the ticket may exist.
 
 A POST is never repeated without first searching for its op label, and never
 sent for an op that is already `created`. Reads (GET, search) are idempotent,
@@ -316,8 +324,14 @@ exponential backoff (0.5 s, 1 s, …), or the server's `Retry-After` on 429
 **Remaining risk:** if an issue was created but is still missing from search
 after all polls, a retry can create a second one. Both carry the same
 `sd-op-` label, and later reconciliation always picks the oldest.
-Two concurrent retries of the same `unknown` op can also both post; a
-compare-and-set fix is planned for M6 ([`docs/decisions.md`](docs/decisions.md), M6-1).
+
+Only one caller may work on an op at a time. Each op row has a version that
+every write bumps; taking over an `unknown` or stale `pending` op is a
+compare-and-set on its status and version, and the owner renews that lease
+before every POST and every reconcile poll. A caller that has lost the lease
+stops without posting. A `pending` op counts as in flight for
+2 × `JIRA_TIMEOUT_SECONDS` after its last renewal; the timing and its one
+residual case are in [`docs/decisions.md`](docs/decisions.md) (D6.1, D6.2).
 
 ### Ticket CLI
 
@@ -330,12 +344,115 @@ python -m smartdesk.tickets show KAN-12 --email jane.doe@novatech.example
 
 `create` prints the ticket and asks for confirmation before sending anything.
 
+## Conversations, ticket approval and sessions
+
+`src/smartdesk/graph/` is a single LangGraph agent with deterministic routing.
+Each message is classified (`greeting`, `knowledge_question`, `create_ticket`,
+`ticket_status`, `provide_info`, `cancel`, `unclear`, `out_of_scope`). The
+classifier is told what SmartDesk is waiting for (an email, issue details,
+which ticket), so an answer can be told apart from a new request.
+
+- **Ticket creation.** SmartDesk collects the issue description (summarised
+  from what the employee said), the email, and the IT/HR category (inferred,
+  asked only if unclear). It derives a one-line summary. Priority is optional:
+  inferred from stated urgency or set at review, never asked. It then shows the
+  complete ticket and pauses with LangGraph `interrupt()`. The employee can
+  approve, edit or cancel. An approval names the exact draft (its `op_id`), so
+  any edit needs a new approval, and only an approved draft reaches Jira. After
+  a Jira error the draft is kept and "try again" goes back through review.
+- **Ticket status.** SmartDesk looks up the session email's tickets: one is
+  shown directly with its status and support comments, several are listed
+  (open first) for the employee to pick by number, ticket ID or description,
+  and none is said clearly with an offer to raise one.
+- **Changing topic.** A question asked mid-flow is answered normally and an
+  open ticket draft is kept on hold ("continue my ticket" resumes it).
+
+`graph.session.ChatSession` is the only entry point for application code; it
+hides the interrupt/resume mechanics (`send`, `approve`, `edit`, `cancel`).
+
+### Session email
+
+The employee's email is captured when SmartDesk asks for it, when a message is
+essentially just an address, or after an explicit "my email is …". Other
+addresses in a message (a colleague's, say) are treated as ticket content.
+Once set, the email is **locked for the session**: a different address is
+refused and needs a new session, and status lookups only ever use the locked
+address.
+
+**Limitation:** the email is a demo identifier, not authentication. Anyone can
+type any address, and SmartDesk does not verify that it belongs to them. A
+production system would take the identity from single sign-on instead.
+
+## Reliability and guardrails
+
+- **LLM failures.** Each OpenAI request has a 30 s timeout and up to 2 retries
+  with exponential backoff that honours `Retry-After`. If a fallback model is
+  configured it gets the same call next. Otherwise, or if it fails too, the
+  employee gets a polite "please try again" reply, and the next message works
+  normally. `.env.example` sets `gpt-4o` as the fallback (available on the IK
+  key; `gpt-4.1-mini` is not).
+- **Any other failure in a turn** gets a safe reply; a ticket draft is kept and
+  only the exception type is logged. A ticket is never created on the back of
+  an approval given before a failure: the draft is shown for review again.
+- **Input.** Messages are Unicode-normalised (NFKC), and control, zero-width
+  and bidi-override characters are removed. Empty messages and messages over
+  `SMARTDESK_MAX_INPUT_CHARS` get a reply and never reach the LLM or the history.
+- **Prompt injection.** Employee messages and KB passages are passed to the LLM
+  as delimited data, with look-alike delimiters removed; citations must refer
+  to passages actually retrieved; approval only comes from the employee's exact
+  words, never from model output.
+- **Tool arguments.** Emails, ticket keys and op ids are validated before any
+  Jira call, and Jira queries are built only from the project key and
+  SmartDesk's own hashed labels.
+- **Cost of long sessions.** The intent router sees only the last
+  `SMARTDESK_ROUTER_HISTORY_TURNS` turns; retrieved passage text is dropped
+  from the session state after each answer.
+
+### Local data and privacy
+
+`data/smartdesk.db` (or `SMARTDESK_DB_PATH`) is a local SQLite file, git-ignored,
+that stores:
+
+- the **full conversation history** of every session (LangGraph checkpoints),
+  including session emails and ticket drafts awaiting approval;
+- employee email → ticket key mappings and ticket creation operations.
+
+Conversation checkpoints can be managed without touching tickets (stop
+SmartDesk first):
+
+```powershell
+python -m smartdesk.sessions list                       # sessions, last activity, size, pending approvals
+python -m smartdesk.sessions delete --session <id>      # delete one conversation
+python -m smartdesk.sessions delete --older-than 30d    # delete conversations idle for 30 days (or e.g. 12h)
+python -m smartdesk.sessions compact                    # keep only each session's newest checkpoint, shrink the file
+```
+
+These commands touch only the conversation tables. Ticket mappings, creation
+records and Jira tickets are never deleted, so status lookups keep working.
+`delete` and `compact` ask for confirmation unless `--yes` is given; a
+compacted session, including one awaiting approval, can still be resumed.
+
+To delete everything (stop SmartDesk first; the `-wal`/`-shm` files exist only
+while the database is in WAL mode):
+
+```powershell
+Remove-Item data/smartdesk.db, data/smartdesk.db-wal, data/smartdesk.db-shm -ErrorAction SilentlyContinue
+```
+
+Tickets already created in Jira are not affected. Without the local mapping,
+status lookups still find them through the `sd-emp-` label search.
+
 ## Run
 
 ```powershell
-python -m smartdesk        # interactive CLI; needs the index (python -m smartdesk.kb.ingest)
-                           # prints intent, domain, top similarity and any escalation reason
+python -m smartdesk                     # new session; needs the index (python -m smartdesk.kb.ingest)
+python -m smartdesk --session <id>      # resume a session after a restart, including a pending approval
 ```
+
+The CLI prints the session id at start and, after each reply, the intent,
+domain, top similarity and any escalation reason or Jira error. At an approval
+step, type `approve`, `cancel`, or describe a change. Without the `JIRA_*`
+variables the CLI still runs, and ticket requests explain that Jira is not configured.
 
 ## Tests
 
@@ -365,6 +482,9 @@ Langfuse callback handler. The Langfuse client is created with a mask function
 bearer tokens, `password=`/`token=` values, email addresses, phone numbers and
 card numbers from trace inputs, outputs and metadata before they leave the process.
 
+The CLI attaches the same redaction to its log handlers (`install_log_redaction`),
+so Jira error bodies that echo an email or token are masked in logs too.
+
 ## Project layout
 
 ```
@@ -372,8 +492,12 @@ src/smartdesk/
   config.py          environment-based settings (secrets as SecretStr)
   llm.py             OpenAI chat + embedding factories
   observability.py   Langfuse client and callbacks
-  redaction.py       secret / PII masking
-  graph/             LangGraph state, prompts and workflow
+  redaction.py       secret / PII masking for traces and logs
+  guardrails.py      input cleaning and length limits
+  sessions.py        session (checkpoint) maintenance CLI
+  graph/             LangGraph agent: workflow (routing), tickets (slot-filling, interrupt
+                     approval, submit), status, identity (email lock), session (ChatSession),
+                     checkpoint (SqliteSaver and its maintenance), state and prompts
   rag/               retrieval, grounded answers + citations, abstention calibration
   tickets/           Jira adapter, SQLite store, idempotent ticket service, ticket CLI
   kb/                KB catalogue, fact sheet, generation (Step A), chunking,
@@ -388,5 +512,7 @@ docs/
   rubric-traceability.md   spec requirements -> implementation and evidence
   demo-script.md           demo data rules and ticket walkthrough
   decisions.md             agreed design decisions and deferred items
+  known-issues.md          open limitations and future work
+  specs/                   approved milestone plans
   data-sources.md          datasets, licences, transformations, deliberate gaps
 ```

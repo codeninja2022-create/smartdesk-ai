@@ -9,6 +9,7 @@ description = "SmartDesk AI: an IT & HR help desk agent (RAG, Jira tickets, HITL
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "langgraph>=1.2,<2",
+    "langgraph-checkpoint-sqlite>=3.1,<4",
     "langchain-core>=1.7,<2",
     "langchain-openai>=1.7,<2",
     "langfuse>=5.1,<6",
@@ -22,10 +23,18 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=9.2,<10"]
+dev = ["pytest>=9.2,<10", "ruff>=0.16,<0.18"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]  # pycodestyle errors, pyflakes, import order
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

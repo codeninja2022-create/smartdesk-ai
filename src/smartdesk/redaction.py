@@ -4,6 +4,7 @@ Patterns are applied in order; secrets are matched before generic PII so a
 token that happens to contain digits is labelled as a secret, not a phone number.
 """
 
+import logging
 import re
 from collections.abc import Callable
 from typing import Any
@@ -58,3 +59,22 @@ def redact(data: Any) -> Any:
 def langfuse_mask(*, data: Any, **_: Any) -> Any:
     """Adapter matching Langfuse's `MaskFunction` protocol."""
     return redact(data)
+
+
+class RedactingFilter(logging.Filter):
+    """Redacts the formatted message (and exception text) of every record a handler emits."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.msg = redact_text(record.getMessage())
+        record.args = ()
+        if record.exc_info:
+            record.exc_text = redact_text(logging.Formatter().formatException(record.exc_info))
+            record.exc_info = None
+        return True
+
+
+def install_log_redaction(*handlers: logging.Handler) -> None:
+    """Attach `RedactingFilter` to these handlers (default: the root logger's handlers)."""
+    for handler in handlers or tuple(logging.getLogger().handlers):
+        if not any(isinstance(f, RedactingFilter) for f in handler.filters):
+            handler.addFilter(RedactingFilter())

@@ -1,4 +1,5 @@
 import os
+import re
 from collections.abc import Callable, Iterator
 
 import pytest
@@ -7,6 +8,8 @@ from langchain_core.runnables import RunnableLambda
 
 from smartdesk.config import Settings
 from smartdesk.graph.state import Intent, IntentClassification
+from smartdesk.graph.status import TicketChoice
+from smartdesk.graph.tickets import TicketFieldsUpdate
 from smartdesk.rag.answer import GroundedAnswer
 from smartdesk.rag.retriever import RetrievedChunk
 
@@ -35,18 +38,32 @@ def make_settings(clean_env: pytest.MonkeyPatch) -> Callable[..., Settings]:
     return factory
 
 
+_MESSAGE_BLOCK = re.compile(r"<message>\n(.*)\n</message>", re.S)
+
+
+def latest_message(messages: list[BaseMessage]) -> str:
+    """The employee message inside the <message> block of a ticket-extractor or chooser input."""
+    match = _MESSAGE_BLOCK.search(str(messages[-1].content))
+    assert match, "expected a <message> block"
+    return match.group(1)
+
+
 class FakeLLM:
     """Stands in for a chat model.
 
     Intent classification returns the scripted intent for the latest user
     message. The answer step returns `answer_fn(messages)`, which by default
-    answers from passage 1 with a citation.
+    answers from passage 1 with a citation. The ticket extractor returns
+    `tickets_by_text[latest message]` (default: no fields) and the ticket
+    chooser `choices_by_text[latest message]` (default: 0, no choice).
     """
 
     def __init__(
         self,
         intents_by_text: dict[str, Intent | IntentClassification],
         answer_fn: Callable[[list[BaseMessage]], GroundedAnswer] | None = None,
+        tickets_by_text: dict[str, TicketFieldsUpdate] | None = None,
+        choices_by_text: dict[str, int] | None = None,
     ) -> None:
         self.intents_by_text = intents_by_text
         self.answer_fn = answer_fn or (
@@ -54,8 +71,12 @@ class FakeLLM:
                 evidence='[1] "..."', sufficient=True, answer="Do the thing [1].", cited_passages=[1]
             )
         )
+        self.tickets_by_text = tickets_by_text or {}
+        self.choices_by_text = choices_by_text or {}
         self.calls: list[list[BaseMessage]] = []
         self.answer_calls: list[list[BaseMessage]] = []
+        self.ticket_calls: list[list[BaseMessage]] = []
+        self.choice_calls: list[list[BaseMessage]] = []
 
     def with_structured_output(self, schema: type) -> RunnableLambda:
         if schema is IntentClassification:
@@ -65,6 +86,20 @@ class FakeLLM:
                 return scripted if isinstance(scripted, IntentClassification) else IntentClassification(intent=scripted)
 
             return RunnableLambda(classify)
+
+        if schema is TicketFieldsUpdate:
+            def extract(messages: list[BaseMessage]) -> TicketFieldsUpdate:
+                self.ticket_calls.append(list(messages))
+                return self.tickets_by_text.get(latest_message(messages), TicketFieldsUpdate())
+
+            return RunnableLambda(extract)
+
+        if schema is TicketChoice:
+            def choose(messages: list[BaseMessage]) -> TicketChoice:
+                self.choice_calls.append(list(messages))
+                return TicketChoice(number=self.choices_by_text.get(latest_message(messages), 0))
+
+            return RunnableLambda(choose)
 
         assert schema is GroundedAnswer
 

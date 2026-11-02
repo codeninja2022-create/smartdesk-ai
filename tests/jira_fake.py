@@ -11,10 +11,13 @@ Failures are scripted per endpoint:
   or (status_code, headers).
 - `search_lag`: number of upcoming searches that return no issues, simulating
   Jira's eventually consistent search index.
+- `on_search`: a one-shot callable run at the start of the next search request
+  (cleared before it runs), e.g. to interleave a second caller deterministically.
 """
 
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -33,6 +36,7 @@ class FakeJira:
     create_script: list[Any] = field(default_factory=list)
     read_script: list[Any] = field(default_factory=list)
     search_lag: int = 0
+    on_search: Callable[[], None] | None = None
     requests: list[httpx.Request] = field(default_factory=list)
     _counter: int = 0
     _clock: int = 0
@@ -88,6 +92,9 @@ class FakeJira:
             return httpx.Response(status, headers=headers, json={"errorMessages": ["scripted"]})
 
         if request.method == "POST" and path == "/rest/api/3/search/jql":
+            if (hook := self.on_search) is not None:
+                self.on_search = None
+                hook()
             return self._search(json.loads(request.content))
         match = re.fullmatch(r"/rest/api/3/issue/([A-Z0-9_]+-\d+)(/comment)?", path)
         if match and request.method == "GET":

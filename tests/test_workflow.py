@@ -12,8 +12,9 @@ MIN_SIMILARITY = 0.35
 DIRECT_REPLY = {
     Intent.GREETING: prompts.GREETING_REPLY,
     Intent.OUT_OF_SCOPE: prompts.OUT_OF_SCOPE_REPLY,
-    Intent.CREATE_TICKET: prompts.CREATE_TICKET_PLACEHOLDER_REPLY,
-    Intent.TICKET_STATUS: prompts.TICKET_STATUS_PLACEHOLDER_REPLY,
+    Intent.UNCLEAR: prompts.CLARIFY_REPLY,
+    Intent.PROVIDE_INFO: prompts.CLARIFY_REPLY,  # nothing was asked, so there is nothing to answer
+    Intent.CANCEL: prompts.NOTHING_TO_CANCEL,
 }
 
 
@@ -31,9 +32,13 @@ def insufficient(messages):
     return GroundedAnswer(evidence="none", sufficient=False, answer="", cited_passages=[])
 
 
-def test_graph_has_rag_nodes_and_a_node_per_direct_intent():
+def test_graph_has_rag_ticket_and_status_nodes():
     nodes = set(graph_for(FakeLLM({})).get_graph().nodes)
-    assert {i.value for i in DIRECT_REPLY} | {"classify_intent", RETRIEVE, GENERATE_ANSWER, ESCALATE} <= nodes
+    assert {
+        "classify_intent", "greeting", "out_of_scope", "clarify", "cancel_flow", "email_locked",
+        RETRIEVE, GENERATE_ANSWER, ESCALATE,
+        "collect_ticket", "present_ticket", "review_ticket", "submit_ticket", "check_status",
+    } <= nodes
 
 
 @pytest.mark.parametrize("intent", list(DIRECT_REPLY))

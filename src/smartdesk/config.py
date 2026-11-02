@@ -7,7 +7,7 @@ Secrets are held as `SecretStr` so they never appear in reprs or logs.
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import AliasChoices, Field, SecretStr
+from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -31,6 +31,18 @@ class Settings(BaseSettings):
         default=30.0, gt=0, validation_alias="SMARTDESK_LLM_TIMEOUT_SECONDS"
     )
     llm_max_retries: int = Field(default=2, ge=0, le=10, validation_alias="SMARTDESK_LLM_MAX_RETRIES")
+    # Used when the primary model keeps failing; same timeout and retries. Unset = canned reply only
+    # (gpt-4.1-mini was checked and is not available to the IK project).
+    llm_fallback_model: str | None = Field(default=None, validation_alias="SMARTDESK_LLM_FALLBACK_MODEL")
+
+    # Conversation guardrails
+    router_history_turns: int = Field(default=4, ge=1, le=50, validation_alias="SMARTDESK_ROUTER_HISTORY_TURNS")
+    max_input_chars: int = Field(default=2000, ge=1, le=20_000, validation_alias="SMARTDESK_MAX_INPUT_CHARS")
+
+    @field_validator("llm_fallback_model", mode="before")
+    @classmethod
+    def _blank_is_unset(cls, value: object) -> object:
+        return None if isinstance(value, str) and not value.strip() else value
 
     # Langfuse (optional)
     langfuse_public_key: str | None = Field(default=None, validation_alias="LANGFUSE_PUBLIC_KEY")

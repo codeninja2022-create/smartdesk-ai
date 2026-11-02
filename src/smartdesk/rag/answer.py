@@ -10,7 +10,7 @@ passages is treated as ungrounded.
 import re
 from dataclasses import dataclass
 
-from langchain_core.language_models import BaseChatModel
+from smartdesk.llm import StructuredLLM
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
@@ -113,7 +113,7 @@ def render(result: AnswerResult) -> str:
     return f"{result.text}\n\nSources:\n{sources}"
 
 
-def generate_answer(llm: BaseChatModel, question: str, chunks: list[dict]) -> AnswerResult:
+def generate_answer(llm: StructuredLLM, question: str, chunks: list[dict]) -> AnswerResult:
     generator = llm.with_structured_output(GroundedAnswer)
     generated = generator.invoke(build_messages(question, chunks))
     assert isinstance(generated, GroundedAnswer)

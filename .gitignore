@@ -1,5 +1,7 @@
-# Secrets
+# Secrets (any .env variant, e.g. .env.txt; only the template is tracked)
 .env
+.env.*
+!.env.example
 
 # Confidential course material
 docs/capstone-spec.pdf

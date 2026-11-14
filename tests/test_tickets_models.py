@@ -10,6 +10,8 @@ from smartdesk.tickets.models import (
     op_label,
 )
 
+pytestmark = pytest.mark.rubric("B1", "M7-JIRA")
+
 
 def make_draft(**overrides) -> TicketDraft:
     fields = dict(

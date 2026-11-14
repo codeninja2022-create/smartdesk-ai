@@ -4,6 +4,8 @@ import pytest
 
 from smartdesk.tickets.store import TicketStore
 
+pytestmark = pytest.mark.rubric("B1", "M7-JIRA")
+
 EMAIL = "jane@novatech.example"
 
 

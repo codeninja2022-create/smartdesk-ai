@@ -2,6 +2,8 @@ import pytest
 
 from smartdesk.rag.calibrate import ItemResult, escalation_metrics, outcome_metrics, recommend_threshold
 
+pytestmark = pytest.mark.rubric("A5", "M7-ESC")
+
 
 def item(category, top, sufficient, id_="x", intent="knowledge_question"):
     return ItemResult(

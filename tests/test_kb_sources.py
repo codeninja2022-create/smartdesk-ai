@@ -4,6 +4,8 @@ import pytest
 
 from smartdesk.kb import sources
 
+pytestmark = pytest.mark.rubric("A1", "M7-KB")
+
 
 def test_clean_text_strips_emails_emoji_and_other_company_names():
     text = "Hi :wave:  mail j.doe@acme.co about the Kreeda Labs policy at Acme Corp"

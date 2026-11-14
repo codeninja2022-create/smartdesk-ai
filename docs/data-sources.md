@@ -129,12 +129,19 @@ indexed. There are two splits:
 `gap-11` ("book movers…") began as a held-out question. It exposed a routing
 gap, and relocation was then added to the router's topic list. The question
 was therefore moved to dev and replaced in held-out with a fresh relocation
-question (`ho-13`), so no held-out item has influenced tuning.
+question (`ho-13`). That held-out failure did influence tuning (the router
+change), and `ho-13` was written after it was seen, so the original held-out
+items are not a clean test set.
 
 M7 added `ho-22` to `ho-32` (11 items) and froze the file: its SHA-256 is pinned
 in `data/eval/heldout/FROZEN.sha256` and `tests/test_eval_frozen.py` fails on any
-edit. `ho-01` to `ho-21` were already scored in M3, so the M7 report also gives
-the fresh `ho-22` to `ho-32` subset on its own.
+edit. `ho-01` to `ho-21` were scored in M3 and their results were known during
+later prompt changes, so they count as **seen**. `ho-22` to `ho-32` were added
+after the last prompt or retrieval change and never scored before the freeze,
+so they are the only **fresh** held-out items; an assistant session that knew
+the system wrote them, so they are not fully independent either. The M7 report
+gives held-out results for the fresh subset, the seen subset and all 32
+(`docs/specs/m7-plan.md` §2a).
 
 Answerable questions are deliberately phrased differently from the documents'
 own headings. One label was corrected after the first retrieval run: `ans-24`

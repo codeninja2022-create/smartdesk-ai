@@ -16,6 +16,8 @@ from smartdesk.kb.evaluate import (
 )
 from smartdesk.kb.generate import validate_body
 
+pytestmark = pytest.mark.rubric("A1", "M7-KB")
+
 KB_DIR = Path("data/kb")
 
 

@@ -3,6 +3,8 @@ from pydantic import ValidationError
 
 from smartdesk.config import Settings
 
+pytestmark = pytest.mark.rubric("F3")
+
 
 def test_defaults(make_settings):
     settings = make_settings()

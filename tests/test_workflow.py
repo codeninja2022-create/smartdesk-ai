@@ -8,6 +8,8 @@ from smartdesk.graph.workflow import ESCALATE, GENERATE_ANSWER, RETRIEVE
 from smartdesk.rag.answer import GroundedAnswer
 from tests.conftest import FakeLLM, FakeRetriever, make_chunk
 
+pytestmark = pytest.mark.rubric("D1", "M7-INTENT")
+
 MIN_SIMILARITY = 0.35
 DIRECT_REPLY = {
     Intent.GREETING: prompts.GREETING_REPLY,
@@ -41,6 +43,7 @@ def test_graph_has_rag_ticket_and_status_nodes():
     } <= nodes
 
 
+@pytest.mark.rubric("D3")
 @pytest.mark.parametrize("intent", list(DIRECT_REPLY))
 def test_direct_intents_reply_without_retrieval(intent):
     retriever = FakeRetriever()
@@ -62,6 +65,7 @@ def test_classifier_gets_system_prompt_first():
     assert sent[-1].content == "hi"
 
 
+@pytest.mark.rubric("A4", "M7-GROUND")
 def test_knowledge_question_returns_grounded_answer_with_sources():
     retriever = FakeRetriever([make_chunk("it-vpn-setup", 0.62, title="VPN Setup", section="Install the client")])
     llm = FakeLLM({"How do I set up the VPN?": IntentClassification(intent=Intent.KNOWLEDGE_QUESTION, domain="IT")})
@@ -104,6 +108,7 @@ def test_answer_step_sees_numbered_passages_and_the_question():
         ),
     ],
 )
+@pytest.mark.rubric("A5", "M7-ESC")
 def test_escalates_and_offers_a_ticket_when_the_kb_cannot_answer(chunks, answer_fn, reason):
     llm = FakeLLM(
         {"Can I take a sabbatical?": IntentClassification(intent=Intent.KNOWLEDGE_QUESTION, domain="HR")},
@@ -135,6 +140,7 @@ def test_first_question_is_searched_verbatim_even_if_the_router_rewrites_it():
     assert retriever.calls == [("When is payday?", "HR")]
 
 
+@pytest.mark.rubric("D2", "M7-MULTI")
 def test_follow_up_uses_the_standalone_query_from_the_router():
     retriever = FakeRetriever()
     llm = FakeLLM({

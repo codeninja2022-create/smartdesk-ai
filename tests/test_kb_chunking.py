@@ -1,5 +1,9 @@
+import pytest
+
 from smartdesk.kb.chunking import MAX_TOKENS, chunk_document, count_tokens
 from tests.kb_helpers import make_doc
+
+pytestmark = pytest.mark.rubric("A2")
 
 
 def test_splits_into_overview_sections_and_individual_faqs():

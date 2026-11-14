@@ -1,4 +1,8 @@
+import pytest
+
 from smartdesk.llm import get_chat_model, get_embeddings, get_resilient_chat_model
+
+pytestmark = pytest.mark.rubric("F2")
 
 
 def test_chat_model_uses_configured_settings(make_settings):

@@ -9,6 +9,8 @@ from tests.conftest import FakeLLM, FakeRetriever
 from tests.graph_helpers import EMAIL, MIN_SIMILARITY, MONITOR, MONITOR_TEXT, make_session
 from tests.ticket_fake import FakeTicketService
 
+pytestmark = pytest.mark.rubric("D2", "M7-MULTI")
+
 OTHER = "someone.else@novatech.example"
 COLLEAGUE = "bob.lee@novatech.example"
 RAISE = "I want to raise a ticket"

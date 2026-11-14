@@ -6,6 +6,8 @@ import pytest
 from smartdesk.kb.catalog import GAPS, TOPICS, find_gap_mentions
 from smartdesk.kb.documents import DOC_ID_PATTERN
 
+pytestmark = pytest.mark.rubric("A1", "M7-KB")
+
 
 def test_topic_plan_matches_approved_counts():
     counts = collections.Counter(t.category for t in TOPICS)

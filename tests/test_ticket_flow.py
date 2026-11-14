@@ -17,6 +17,8 @@ from tests.conftest import FakeLLM, FakeRetriever, latest_message
 from tests.graph_helpers import EMAIL, MONITOR, MONITOR_TEXT, expected_op_id, make_session
 from tests.ticket_fake import BROWSE, FakeTicketService
 
+pytestmark = pytest.mark.rubric("M7-JIRA")
+
 RAISE = "I want to raise a ticket"
 DRAFT = {"summary": MONITOR.summary, "description": MONITOR.description, "category": "IT", "priority": None}
 STORED_DRAFT = {k: v for k, v in DRAFT.items() if k != "priority"}  # state only holds fields that were set
@@ -47,6 +49,7 @@ def to_review(session):
 # --- slot-filling and approval ---
 
 
+@pytest.mark.rubric("B2", "B4", "M7-HITL")
 def test_happy_path_collects_fields_then_creates_only_after_approval():
     service = FakeTicketService()
     session = make_session(ticket_llm(), service)
@@ -106,6 +109,7 @@ def test_all_fields_in_one_message_go_straight_to_review():
     assert result.approval["draft"] == {"email": EMAIL, **DRAFT}
 
 
+@pytest.mark.rubric("B2")
 def test_category_is_inferred_from_the_conversation():
     text = "My payslip shows the wrong tax deduction"
     update = TicketFieldsUpdate(
@@ -118,6 +122,7 @@ def test_category_is_inferred_from_the_conversation():
     assert session.send(EMAIL).approval["draft"]["category"] == "HR"
 
 
+@pytest.mark.rubric("B2")
 def test_unknown_category_is_asked_for():
     text = "Something about my account is wrong"
     update = TicketFieldsUpdate(description="Something about the employee's account is wrong.")
@@ -134,6 +139,7 @@ def test_unknown_category_is_asked_for():
     assert result.approval["draft"]["summary"] == "Something about the employee's account is wrong."  # derived
 
 
+@pytest.mark.rubric("B2", "A5", "M7-ESC")
 def test_accepting_an_escalation_offer_starts_a_ticket_from_the_question():
     question = "Why does my monitor flicker?"
     llm = ticket_llm(
@@ -425,6 +431,7 @@ def test_invalid_description_is_dropped_and_asked_for_again():
 # --- review: edit, cancel, approval binding ---
 
 
+@pytest.mark.rubric("B3", "M7-HITL")
 def test_structured_edit_changes_the_op_id_and_invalidates_the_old_approval():
     service = FakeTicketService()
     session = make_session(ticket_llm(), service)
@@ -467,6 +474,7 @@ def test_free_text_correction_at_review_updates_the_draft_and_asks_again():
     assert service.create_calls == []
 
 
+@pytest.mark.rubric("B3", "M7-HITL")
 def test_cancel_at_review_creates_nothing():
     service = FakeTicketService()
     session = make_session(ticket_llm(), service)
@@ -478,6 +486,7 @@ def test_cancel_at_review_creates_nothing():
     assert service.create_calls == []
 
 
+@pytest.mark.rubric("B3", "M7-HITL")
 def test_new_input_while_paused_never_creates_a_ticket():
     # Bypassing ChatSession: a plain "approve" message starts a new turn instead of resuming.
     service = FakeTicketService()
@@ -490,6 +499,7 @@ def test_new_input_while_paused_never_creates_a_ticket():
     assert session.state()["awaiting"] == "held_draft"
 
 
+@pytest.mark.rubric("B3", "M7-HITL")
 def test_submit_refuses_a_draft_without_a_matching_approval():
     service = FakeTicketService()
     submit = make_submit_node(service)
@@ -500,6 +510,7 @@ def test_submit_refuses_a_draft_without_a_matching_approval():
     assert service.create_calls == []
 
 
+@pytest.mark.rubric("B4")
 def test_same_draft_again_in_the_session_reports_the_existing_ticket():
     again = "raise that same ticket again"
     service = FakeTicketService()
@@ -542,6 +553,7 @@ def test_jira_unavailable_says_not_created_and_try_again_reuses_op_id():
         (TicketCreationUncertain("timeout"), "ticket_uncertain"),
     ],
 )
+@pytest.mark.rubric("F1", "M7-ERR")
 def test_jira_errors_get_their_own_message_and_keep_the_draft(error, code):
     session = make_session(ticket_llm(), FakeTicketService(create_errors=[error]))
     to_review(session)
@@ -566,6 +578,7 @@ def test_ticket_requests_without_jira_explain_it_is_not_configured():
 # --- intent switches mid-flow ---
 
 
+@pytest.mark.rubric("D2", "M7-MULTI")
 def test_knowledge_question_during_collection_puts_the_draft_on_hold():
     session = make_session(ticket_llm())
     session.send(RAISE)
@@ -595,6 +608,7 @@ def test_knowledge_question_at_review_is_answered_and_review_can_resume():
     assert service.create_calls == []
 
 
+@pytest.mark.rubric("D2", "M7-MULTI")
 def test_status_check_during_collection_keeps_the_draft():
     service = FakeTicketService()
     service.add_ticket(EMAIL, "Laptop battery drains fast", status="In Progress", status_category="In Progress")

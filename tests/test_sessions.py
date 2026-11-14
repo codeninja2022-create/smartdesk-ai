@@ -19,6 +19,8 @@ from tests.conftest import FakeLLM, FakeRetriever
 from tests.graph_helpers import EMAIL, MONITOR, MONITOR_TEXT
 from tests.jira_fake import FakeJira
 
+pytestmark = pytest.mark.rubric("D2", "M7-MULTI")
+
 RAISE = "I want to raise a ticket"
 
 

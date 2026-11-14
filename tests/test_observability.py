@@ -3,6 +3,8 @@ import pytest
 from smartdesk import observability
 from smartdesk.redaction import langfuse_mask
 
+pytestmark = pytest.mark.rubric("F3")
+
 
 @pytest.fixture(autouse=True)
 def reset_client(monkeypatch):

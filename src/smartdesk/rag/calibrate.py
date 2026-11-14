@@ -32,20 +32,24 @@ import argparse
 import json
 import math
 import sys
+from collections.abc import Callable
+from contextlib import nullcontext
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from smartdesk.config import get_settings
+from smartdesk.eval.harness import BudgetExceeded, git_state, write_run_marker
+from smartdesk.eval.live import start_run
 from smartdesk.graph import prompts
 from smartdesk.graph.state import Intent, IntentClassification
 from smartdesk.kb.evaluate import EVAL_PATH, HELDOUT_PATH, EvalCategory, EvalItem, load_eval_set
-from smartdesk.llm import get_chat_model
 from smartdesk.rag.answer import generate_answer
-from smartdesk.rag.retriever import Retriever, build_retriever
+from smartdesk.rag.retriever import Retriever
 
 REPORT_PATH = Path("data/eval/calibration_report.json")
+HELDOUT_RUN = Path("data/eval/heldout/RUN.json")  # written once, after a complete held-out run
+HELDOUT_FRESH_FROM = 22
 SPLITS = {"dev": EVAL_PATH, "heldout": HELDOUT_PATH}
 SAFETY_MARGIN = 0.05
 EXPECTED_INTENT = {
@@ -253,42 +257,120 @@ def _print_split(name: str, report: dict, threshold: float) -> None:
         )
 
 
+def is_fresh_heldout(item_id: str) -> bool:
+    """ho-22..ho-32 were written after the router change; ho-01..ho-21 were seen (m7-plan §2a)."""
+    return int(item_id.removeprefix("ho-")) >= HELDOUT_FRESH_FROM
+
+
+def heldout_subsets(results: list[ItemResult], threshold: float) -> dict:
+    fresh = [r for r in results if is_fresh_heldout(r.id)]
+    seen = [r for r in results if not is_fresh_heldout(r.id)]
+    return {
+        f"fresh (ho-{HELDOUT_FRESH_FROM}+)": evaluate_split(fresh, threshold, calibrate=False),
+        f"seen (ho-01..ho-{HELDOUT_FRESH_FROM - 1})": evaluate_split(seen, threshold, calibrate=False),
+    }
+
+
+def heldout_refusal(marker: Path = HELDOUT_RUN, dirty: bool = False) -> str | None:
+    """Why the held-out split may not run now, or None. It runs once, from committed code."""
+    if marker.exists():
+        return f"{marker} exists: the held-out set has already been scored once and is not re-run."
+    if dirty:
+        return "The working tree has uncommitted changes; commit first so RUN.json names the exact code."
+    return None
+
+
+def score_items(items: list[EvalItem], evaluate_one: Callable[[EvalItem], ItemResult], *,
+                timed: Callable | None = None, stop: Callable[[], bool] = lambda: False,
+                label: str = "") -> tuple[list[ItemResult], bool]:
+    """Score items in order; (results, complete). A budget stop ends the run early; other errors propagate."""
+    results = []
+    for n, item in enumerate(items, 1):
+        print(f"\r  {label}: evaluating {n}/{len(items)}", end="", file=sys.stderr, flush=True)
+        try:
+            with timed() if timed else nullcontext():
+                result = evaluate_one(item)
+        except BudgetExceeded:
+            print(file=sys.stderr)
+            return results, False
+        if stop():
+            print(file=sys.stderr)
+            return results, False
+        results.append(result)
+    print(file=sys.stderr)
+    return results, True
+
+
+def finish_heldout(marker: Path, complete: bool, payload: dict) -> bool:
+    """Write the held-out marker only for a complete run; a partial run leaves nothing to block a rerun."""
+    if not complete:
+        return False
+    write_run_marker(marker, payload)
+    return True
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--split", choices=["dev", "heldout", "all"], default="all")
     args = parser.parse_args(argv)
+    names = ["dev", "heldout"] if args.split == "all" else [args.split]
 
-    settings = get_settings()
-    retriever = build_retriever(settings)
-    if retriever.collection.count() == 0:
-        print("The index is empty; run `python -m smartdesk.kb.ingest` first.", file=sys.stderr)
+    if "heldout" in names and (reason := heldout_refusal(dirty=git_state()["dirty"])):
+        print(reason, file=sys.stderr)
         return 1
+
+    run = start_run(f"calibrate-{args.split}", argv=["smartdesk.rag.calibrate", *(argv or sys.argv[1:])])
+    settings = run.settings
+    retriever = run.retriever
     unfiltered = Retriever(retriever.collection, retriever.embed_query, top_k=retriever.top_k)
-    llm = get_chat_model(settings)
+    llm = run.chat_model()
     classifier = llm.with_structured_output(IntentClassification)
     threshold = settings.rag_min_similarity
 
-    report: dict = {
-        "settings": {
-            "llm_model": settings.llm_model,
-            "embedding_model": settings.embedding_model,
-            "top_k": settings.rag_top_k,
-            "min_similarity": threshold,
-        },
+    report: dict = json.loads(REPORT_PATH.read_text(encoding="utf-8")) if REPORT_PATH.exists() else {}
+    report["settings"] = {
+        "llm_model": settings.llm_model,
+        "embedding_model": settings.embedding_model,
+        "top_k": settings.rag_top_k,
+        "min_similarity": threshold,
     }
-    for name in ["dev", "heldout"] if args.split == "all" else [args.split]:
+    run_results: dict = {"splits": {}}
+    exit_code = 0
+    for name in names:
         items = load_eval_set(SPLITS[name])
-        results = []
-        for n, item in enumerate(items, 1):
-            print(f"\r  {name}: evaluating {n}/{len(items)}", end="", file=sys.stderr, flush=True)
-            results.append(run_item(item, classifier, llm, retriever, unfiltered))
-        print(file=sys.stderr)
-        report[name] = evaluate_split(results, threshold, calibrate=name == "dev")
-        _print_split(name, report[name], threshold)
+        results, complete = score_items(
+            items, lambda item: run_item(item, classifier, llm, retriever, unfiltered),
+            timed=run.timed, stop=lambda: run.tracker.exceeded, label=name,
+        )
+        split_report = evaluate_split(results, threshold, calibrate=name == "dev" and complete)
+        if name == "heldout":
+            split_report["subsets"] = heldout_subsets(results, threshold)
+        run_results["splits"][name] = {"complete": complete, "items_total": len(items), **split_report}
+        _print_split(name, split_report, threshold)
+        if name == "heldout":
+            for subset, sub in split_report["subsets"].items():
+                _print_split(f"heldout {subset}", sub, threshold)
+        if not complete:
+            print(f"\n{name}: INCOMPLETE ({len(results)}/{len(items)} scored): budget reached.", file=sys.stderr)
+            exit_code = 2
+            break
+        report[name] = split_report
 
-    REPORT_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(f"\nPer-question detail: {REPORT_PATH}")
-    return 0
+    path = run.write_results(run_results)
+    if exit_code == 0:
+        REPORT_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        print(f"\nPer-question detail: {REPORT_PATH}")
+        if "heldout" in names:
+            marker = {**json.loads(path.read_text(encoding="utf-8")), "heldout": report["heldout"]}
+            marker.pop("splits", None)
+            finish_heldout(HELDOUT_RUN, True, marker)
+            print(f"Held-out marker written: {HELDOUT_RUN}")
+    totals, latency = run.log.totals(), run.timer.summary()
+    print(f"Spend: run ${totals['run_spent_usd']:.4f}, cumulative ${totals['cumulative_spent_usd']:.4f}; "
+          f"calls {totals['calls']} ({totals['cache_hits']} cached)")
+    print(f"Latency (uncached items, n={latency['turns_timed']}): p50 {latency['p50_s']}s, p95 {latency['p95_s']}s")
+    print(f"Run log: {path}")
+    return exit_code
 
 
 if __name__ == "__main__":

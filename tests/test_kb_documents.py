@@ -4,6 +4,8 @@ from pydantic import ValidationError
 from smartdesk.kb.documents import load_dir, parse, render
 from tests.kb_helpers import make_doc
 
+pytestmark = pytest.mark.rubric("A1", "M7-KB")
+
 
 def test_render_parse_round_trip():
     doc = make_doc()

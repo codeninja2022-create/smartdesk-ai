@@ -1,5 +1,9 @@
+import pytest
+
 from smartdesk.rag.answer import GroundedAnswer, finalize, format_passages, render
 from tests.conftest import make_chunk
+
+pytestmark = pytest.mark.rubric("A4", "M7-GROUND")
 
 
 def chunks(*doc_ids):

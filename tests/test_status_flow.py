@@ -8,6 +8,8 @@ from tests.conftest import FakeLLM
 from tests.graph_helpers import EMAIL, make_session
 from tests.ticket_fake import BROWSE, FakeTicketService
 
+pytestmark = pytest.mark.rubric("C1", "M7-STATUS")
+
 STATUS = "What's the status of my ticket?"
 STATUS_WITH_EMAIL = f"What's the status of my ticket? My email is {EMAIL}"
 VPN_REF = "Did anyone look at my VPN issue?"
@@ -44,6 +46,7 @@ def test_asks_for_email_then_looks_up_tickets():
     assert result.text == prompts.NO_TICKETS.format(email=EMAIL)
 
 
+@pytest.mark.rubric("C3")
 def test_no_tickets_says_so_and_offers_a_ticket():
     session = make_session(status_llm(), FakeTicketService())
     result = session.send(STATUS_WITH_EMAIL)
@@ -73,6 +76,7 @@ def test_ticket_without_comments_says_no_updates_yet():
     assert result.text.endswith(prompts.NO_COMMENTS)
 
 
+@pytest.mark.rubric("C2")
 def test_multiple_tickets_are_listed_open_first_and_selected_by_number():
     service = FakeTicketService()
     three_tickets(service)
@@ -89,6 +93,7 @@ def test_multiple_tickets_are_listed_open_first_and_selected_by_number():
     assert result.state["awaiting"] is None and result.state["status_candidates"] == []
 
 
+@pytest.mark.rubric("C2")
 @pytest.mark.parametrize(("reply", "key"), [("kan-2", "KAN-2"), ("the first one", "KAN-3"), ("#3", "KAN-2")])
 def test_ticket_can_be_chosen_by_key_or_position(reply, key):
     service = FakeTicketService()
@@ -99,6 +104,7 @@ def test_ticket_can_be_chosen_by_key_or_position(reply, key):
     assert session.send(reply).text.startswith(f"{key}:")
 
 
+@pytest.mark.rubric("C2")
 def test_invalid_choice_lists_the_tickets_again():
     service = FakeTicketService()
     three_tickets(service)
@@ -111,6 +117,7 @@ def test_invalid_choice_lists_the_tickets_again():
     assert service.get_calls == []
 
 
+@pytest.mark.rubric("C2")
 def test_a_reference_to_one_ticket_is_resolved_without_listing():
     service = FakeTicketService()
     three_tickets(service)
@@ -125,6 +132,7 @@ def test_a_reference_to_one_ticket_is_resolved_without_listing():
     assert "2. KAN-1: VPN drops every hour" in sent and COMMENT.body not in sent
 
 
+@pytest.mark.rubric("C3")
 def test_ticket_key_in_the_message_is_looked_up_for_the_session_email_only():
     service = FakeTicketService()
     service.add_ticket("someone.else@novatech.example", "Not yours")
@@ -140,6 +148,7 @@ def test_ticket_key_in_the_message_is_looked_up_for_the_session_email_only():
 @pytest.mark.parametrize(
     ("error", "code"), [(JiraUnavailable("down"), "jira_unavailable"), (JiraAuthError("401"), "jira_auth")]
 )
+@pytest.mark.rubric("C3", "F1", "M7-ERR")
 def test_lookup_errors_get_a_clear_message(error, code):
     result = make_session(status_llm(), FakeTicketService(read_errors=[error])).send(STATUS_WITH_EMAIL)
     assert result.text == prompts.STATUS_ERROR[code]

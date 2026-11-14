@@ -6,6 +6,8 @@ import pytest
 from smartdesk.kb.vectorstore import get_collection
 from smartdesk.rag.retriever import Retriever
 
+pytestmark = pytest.mark.rubric("A3", "M7-RET")
+
 
 def unit(*xs):
     return [float(x) for x in xs]

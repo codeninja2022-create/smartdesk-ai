@@ -1,4 +1,8 @@
+import pytest
+
 from smartdesk.tickets.adf import adf_to_text, text_to_adf
+
+pytestmark = pytest.mark.rubric("B1", "M7-JIRA")
 
 
 def test_text_to_adf_builds_paragraphs_and_hard_breaks():

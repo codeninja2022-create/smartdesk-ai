@@ -20,3 +20,7 @@ chroma/
 *.db-wal
 *.db-shm
 data/raw/
+
+# M7 evaluation: response caches and per-run logs stay local (RUN.json and the report are committed)
+data/eval/.cache/
+data/eval/runs/

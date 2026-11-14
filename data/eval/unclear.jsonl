@@ -1,0 +1,9 @@
+{"id": "U1", "type": "unclear_no_history", "turns": [{"say": "it's broken", "expect": {"asks_clarification": true, "no_tickets": true}}]}
+{"id": "U2", "type": "unclear_no_history", "turns": [{"say": "help", "expect": {"asks_clarification": true, "no_tickets": true}}]}
+{"id": "U3", "type": "unclear_no_history", "turns": [{"say": "the thing isn't working", "expect": {"asks_clarification": true, "no_tickets": true}}]}
+{"id": "U4", "type": "unclear_no_history", "turns": [{"say": "can you fix it?", "expect": {"asks_clarification": true, "no_tickets": true}}]}
+{"id": "U5", "type": "unclear_no_history", "turns": [{"say": "I have a problem", "expect": {"asks_clarification": true, "no_tickets": true}}]}
+{"id": "U6", "type": "unclear_no_history", "turns": [{"say": "it doesn't work again", "expect": {"asks_clarification": true, "no_tickets": true}}]}
+{"id": "U7", "type": "unclear_no_history", "turns": [{"say": "urgent, please sort this out", "expect": {"asks_clarification": true, "no_tickets": true}}]}
+{"id": "U8", "type": "unclear_no_history", "turns": [{"say": "same issue as before", "expect": {"asks_clarification": true, "no_tickets": true}}]}
+{"id": "U9", "type": "unclear_with_history", "note": "should resolve 'same issue as before' from the earlier turn", "turns": [{"say": "My VPN keeps disconnecting every few minutes when I work from home", "expect": {}}, {"say": "same issue as before", "expect": {"no_tickets": true, "any_of": [{"intent": "knowledge_question", "query_has": ["vpn"]}, {"intent": "create_ticket", "draft_has": ["vpn"]}]}}]}

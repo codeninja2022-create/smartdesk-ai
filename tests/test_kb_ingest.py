@@ -8,6 +8,8 @@ from smartdesk.kb.ingest import IngestReport, ingest, load_documents
 from smartdesk.kb.vectorstore import get_collection, search
 from tests.kb_helpers import fake_embed, make_doc
 
+pytestmark = pytest.mark.rubric("A2")
+
 
 class CountingEmbed:
     def __init__(self):

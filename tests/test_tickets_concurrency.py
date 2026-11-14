@@ -14,6 +14,8 @@ from smartdesk.tickets.service import JiraTicketService
 from smartdesk.tickets.store import TicketStore
 from tests.jira_fake import FakeJira
 
+pytestmark = pytest.mark.rubric("F4", "M7-JIRA")
+
 EMAIL = "jane.doe@novatech.example"
 OP = "a" * 64
 DRAFT = TicketDraft(email=EMAIL, summary="Monitor flickers", description="Flickers when docked.", category="IT")

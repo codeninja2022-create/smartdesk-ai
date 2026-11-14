@@ -15,7 +15,7 @@ from smartdesk.config import Settings
 from smartdesk.tickets import TicketDraft, build_ticket_service, derive_op_id
 from smartdesk.tickets.models import JiraError
 
-pytestmark = pytest.mark.jira_live
+pytestmark = [pytest.mark.jira_live, pytest.mark.rubric("B1", "C1", "M7-JIRA", "M7-STATUS")]
 
 LIVE_LABEL = "sd-live-test"
 

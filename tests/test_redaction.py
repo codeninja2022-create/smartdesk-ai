@@ -4,6 +4,8 @@ import pytest
 
 from smartdesk.redaction import langfuse_mask, redact, redact_text
 
+pytestmark = pytest.mark.rubric("F3")
+
 
 @pytest.mark.parametrize(
     ("text", "secret", "label"),

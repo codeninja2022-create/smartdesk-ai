@@ -6,6 +6,8 @@ from smartdesk.kb.catalog import GAPS, TOPICS
 from smartdesk.kb.documents import SourceType
 from smartdesk.kb.sources import SourceRecord
 
+pytestmark = pytest.mark.rubric("A1", "M7-KB")
+
 TOPIC_A, TOPIC_B = TOPICS[0], TOPICS[1]
 
 

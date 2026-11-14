@@ -10,6 +10,8 @@ from smartdesk.tickets.jira import AmbiguousCreateError, JiraClient, build_jira_
 from smartdesk.tickets.models import JiraAuthError, JiraError, JiraRequestRejected, JiraUnavailable
 from tests.jira_fake import BASE_URL, FakeJira
 
+pytestmark = pytest.mark.rubric("B1", "M7-JIRA")
+
 FIELDS = {"project": {"key": "KAN"}, "issuetype": {"name": "Task"}, "summary": "s", "labels": ["smartdesk"]}
 
 

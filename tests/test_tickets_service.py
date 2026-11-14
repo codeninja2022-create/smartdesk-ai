@@ -15,6 +15,8 @@ from smartdesk.tickets.service import JiraTicketService, build_ticket_service
 from smartdesk.tickets.store import TicketStore
 from tests.jira_fake import BASE_URL, FakeJira
 
+pytestmark = pytest.mark.rubric("B1", "M7-JIRA")
+
 EMAIL = "jane.doe@novatech.example"
 OTHER = "john@novatech.example"
 OP1, OP2 = "1" * 64, "2" * 64  # derive_op_id produces 64 hex characters
@@ -57,6 +59,7 @@ def make_service(jira, store):
 # --- creation ---
 
 
+@pytest.mark.rubric("B4")
 def test_create_ticket_returns_real_key_and_url(jira, store, make_service):
     draft = make_draft()
     op_id = derive_op_id("thread-1", draft)
@@ -225,6 +228,7 @@ def test_op_id_for_another_email_is_rejected(store, make_service):
 # --- lookup ---
 
 
+@pytest.mark.rubric("C3", "M7-STATUS")
 def test_no_tickets_returns_empty_list(make_service):
     assert make_service().list_tickets(EMAIL) == []
 
@@ -259,6 +263,7 @@ def test_listing_drops_deleted_tickets(store, make_service):
     assert make_service().list_tickets(EMAIL) == []
 
 
+@pytest.mark.rubric("C1", "M7-STATUS")
 def test_get_ticket_returns_status_and_comments(jira, make_service):
     key = jira.add_issue(["sd-cat-it", employee_label(EMAIL)], status="Waiting for Customer",
                          status_category="In Progress", description={"type": "doc", "content": [

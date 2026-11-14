@@ -20,6 +20,8 @@ from tests.conftest import FakeLLM, FakeRetriever, latest_message, make_chunk
 from tests.graph_helpers import EMAIL, MIN_SIMILARITY, MONITOR, MONITOR_TEXT, make_session
 from tests.ticket_fake import FakeTicketService
 
+pytestmark = pytest.mark.rubric("F1", "F2", "M7-ERR")
+
 RAISE = "I want to raise a ticket"
 GREETING = {"intent": "greeting", "domain": "unknown", "search_query": ""}
 

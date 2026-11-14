@@ -185,7 +185,7 @@ def test_new_ticket_after_a_created_one_starts_from_a_fresh_draft():
 
 
 def test_escalated_question_seeds_the_new_flow_but_earlier_turns_do_not():
-    vpn, question = "How do I set up the VPN?", "Why does my monitor flicker?"
+    vpn, question = "How do I set up the VPN?", "Why does my monitor flicker on the dock since Monday?"
 
     def answer(messages):
         if "monitor" in messages[-1].content:
@@ -429,7 +429,7 @@ def test_router_is_told_a_ticket_is_in_progress_before_any_field_is_known():
 
 
 def test_too_long_summary_falls_back_to_one_derived_from_the_description():
-    text = "the dock problem"
+    text = "my monitor flickers on the dock since Monday"  # states what the fake extraction contains (K28)
     update = TicketFieldsUpdate(description=MONITOR.description, summary="x" * 300, category="IT")
     session = make_session(ticket_llm({text: I.PROVIDE_INFO}, {text: update}))
     session.send(RAISE)
@@ -532,7 +532,7 @@ def test_submit_refuses_a_draft_without_a_matching_approval():
 
 @pytest.mark.rubric("B4")
 def test_same_draft_again_in_the_session_reports_the_existing_ticket():
-    again = "raise that same ticket again"
+    again = "raise that same ticket again: my external monitor flickers on the dock, since Monday"
     service = FakeTicketService()
     session = make_session(ticket_llm({again: I.CREATE_TICKET}, {again: MONITOR}), service)
     to_review(session)

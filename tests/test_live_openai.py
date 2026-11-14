@@ -5,15 +5,17 @@ Run with SMARTDESK_LIVE_TESTS=1. The end-to-end RAG tests also need the index
 """
 
 import pytest
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
 from smartdesk.config import Settings
 from smartdesk.graph import ChatSession, build_graph, prompts
 from smartdesk.graph.state import Intent
+from smartdesk.graph.tickets import TicketFieldsUpdate, build_extraction_messages
 from smartdesk.llm import get_chat_model, get_embeddings
 from smartdesk.rag.retriever import build_retriever
 from tests.conftest import FakeRetriever, make_chunk
+from tests.test_ticket_grounding import FILLER, PRINTER, TIMING
 from tests.ticket_fake import FakeTicketService
 
 pytestmark = pytest.mark.openai_live
@@ -83,6 +85,34 @@ def test_live_escalation_offer_to_reviewed_ticket(settings):
     assert draft["category"] == "IT"
     assert "monitor" in draft["description"].lower() and "\n" not in draft["summary"]
     assert service.create_calls == []  # paused for approval; nothing sent
+
+
+@pytest.mark.rubric("A4", "B2", "M7-GROUND", "M7-JIRA")
+def test_live_extractor_adds_no_timing_or_filler_the_employee_did_not_give(settings):
+    """K28, the prompt alone: the raw extractor output, before the code guard runs."""
+    messages = [
+        HumanMessage(content=PRINTER),
+        AIMessage(content=prompts.ESCALATION_REPLY.format(team="IT")),
+        HumanMessage(content="yes please"),
+    ]
+    extractor = get_chat_model(settings).with_structured_output(TicketFieldsUpdate)
+    description = extractor.invoke(build_extraction_messages({}, messages, 0)).description
+    assert "printer" in description.lower()
+    assert not TIMING.search(description), description
+    assert not FILLER.search(description), description
+
+
+@pytest.mark.rubric("A4", "B2", "M7-GROUND", "M7-JIRA")
+def test_live_ticket_for_a_gap_question_holds_only_what_the_employee_said(settings):
+    """K28, end to end: escalation -> "yes please" -> email -> the draft shown for approval."""
+    session, service = _ticket_session(settings, "live-k28")
+    assert session.send(PRINTER).state["escalation_reason"]
+    session.send("yes please")
+    description = session.send("arjun.mehta@novatech.example").approval["draft"]["description"]
+    assert "printer" in description.lower()
+    assert not TIMING.search(description), description
+    assert not FILLER.search(description), description
+    assert service.create_calls == []
 
 
 @pytest.mark.rubric("D1", "D2", "M7-INTENT", "M7-MULTI")

@@ -113,6 +113,51 @@ def held_draft_decision(text: str) -> Literal["continue", "new"] | None:
     return None
 
 
+_SENTENCE_BREAK = re.compile(r"(?<=[.!?])\s+")
+_FILLER_CLAIM = re.compile(
+    r"\b(?:not (?:been )?(?:mentioned|specified|stated|provided|described)|did not (?:mention|say|specify)|"
+    r"unspecified|unknown|no (?:details|information) (?:was|were) (?:given|provided))\b",
+    re.I,
+)
+# A timing claim is allowed only if the employee made one of the same kind: any word of a group in
+# their messages licenses that group ("since Monday" allows "it started on Monday").
+_TIMING_GROUPS = [
+    re.compile(r"\b(?:start(?:s|ed|ing)?|began|begin(?:s|ning)?|since|onset)\b", re.I),
+    re.compile(r"\b(?:recent(?:ly)?|lately|earlier|a while)\b", re.I),
+    re.compile(r"\b(?:yesterday|today|tonight|this (?:morning|afternoon|evening|week)|last (?:night|week|month))\b",
+               re.I),
+    re.compile(r"\b(?:ago|for (?:a few|several|many|a|an|\d+|two|three) (?:minute|hour|day|week|month)s?|"
+               r"\d+ (?:minute|hour|day|week|month)s?)\b", re.I),
+]
+# Specific moments must be the employee's own: the same weekday, month or date.
+_EXACT_TIMING = re.compile(
+    r"\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|january|february|march|april|june|july|"
+    r"august|september|october|november|december|\d{1,2}/\d{1,2}(?:/\d{2,4})?)\b",
+    re.I,
+)
+
+
+def remove_unstated_claims(description: str, employee_text: str) -> str:
+    """Drop sentences with filler or with timing the employee never gave (K28).
+
+    The extractor is told not to invent; this makes the two failure modes seen live
+    (an invented onset, "not mentioned" filler) impossible regardless of the model.
+    """
+    said = employee_text.lower()
+    kept = []
+    for sentence in _SENTENCE_BREAK.split(description.strip()):
+        if not sentence or _FILLER_CLAIM.search(sentence):
+            continue
+        if any(group.search(sentence) and not group.search(said) for group in _TIMING_GROUPS):
+            continue
+        if any(token.lower() not in said for token in _EXACT_TIMING.findall(sentence)):
+            continue
+        kept.append(sentence)
+    if not kept and description.strip():
+        return " ".join(employee_text.split())  # nothing grounded survived: the employee's own words
+    return " ".join(kept)
+
+
 def summary_from(description: str) -> str:
     line = " ".join(description.split())
     if len(line) <= _SUMMARY_FALLBACK_CHARS:
@@ -174,11 +219,16 @@ def build_extraction_messages(draft: dict, messages: list[BaseMessage], flow_sta
     ]
 
 
-def _merge_extraction(draft: dict, update: TicketFieldsUpdate) -> dict:
+def _employee_text(messages: list[BaseMessage]) -> str:
+    return " ".join(str(m.content) for m in messages if isinstance(m, HumanMessage))
+
+
+def _merge_extraction(draft: dict, update: TicketFieldsUpdate, employee_text: str = "") -> dict:
     """Apply the extractor's non-empty values; invalid ones are dropped (and asked for again)."""
     fields: dict[str, Any] = {}
-    if update.description.strip():
-        fields["description"] = update.description
+    description = remove_unstated_claims(update.description, employee_text) if employee_text else update.description
+    if description.strip():
+        fields["description"] = description
     if update.summary.strip():
         fields["summary"] = update.summary
     if update.category != "unknown":
@@ -242,7 +292,7 @@ def make_collect_node(llm: StructuredLLM) -> Callable[[SmartDeskState], dict]:
         if not skip_extraction:
             update = extractor.invoke(build_extraction_messages(draft, extract_from, start))
             assert isinstance(update, TicketFieldsUpdate)
-            draft = _merge_extraction(draft, update)
+            draft = _merge_extraction(draft, update, _employee_text(extract_from[start:]))
         if awaiting == "ticket_category" and (match := _CATEGORY_REPLY.match(latest)):
             draft["category"] = match.group(1).upper()
         if draft.get("category") not in ("IT", "HR") and state.get("domain") in ("IT", "HR"):

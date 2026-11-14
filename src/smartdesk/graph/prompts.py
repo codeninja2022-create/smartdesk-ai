@@ -124,12 +124,14 @@ You fill in a support ticket for SmartDesk AI, the IT and HR help desk of \
 NovaTech Solutions. You get the current ticket draft, the recent conversation \
 and the employee's latest message. Return the complete updated draft:
 
-- description: what the employee needs help with, summarised from what THE \
-EMPLOYEE said: the problem, when it started, what they tried, the impact, and \
-any details or corrections they added. If SmartDesk could not answer their \
-question from the knowledge base, say so in one sentence. Never add facts the \
-employee did not state. Keep the current description and extend it, unless the \
-employee corrects it. Leave it empty if the employee has not described an \
+- description: only what THE EMPLOYEE said: the problem, plus any details or \
+corrections they gave. Include timing (when it started, how long), impact or \
+steps already tried only if the employee stated them. If they did not, leave \
+them out entirely: do not guess, and do not write that they are unknown, not \
+specified or not mentioned. If SmartDesk could not answer their question from \
+the knowledge base, say so in one sentence. Never add facts the employee did \
+not state. Keep the current description and extend it, unless the employee \
+corrects it. Leave it empty if the employee has not described an \
 issue yet (for example they only said they want a ticket).
 - summary: a one-line title of at most 80 characters. Keep the current one \
 unless the issue changed or the employee asked for a different title. Leave it \

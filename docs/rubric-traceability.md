@@ -22,9 +22,9 @@ Last updated: Milestone 6.
 |---|---|---|---|---|---|---|
 | A1 | Quality and breadth of KB content | 5 | FR-1.1 – FR-1.4, §3.4 | M2 | `data/kb/` (40 docs), `docs/data-sources.md`, `tests/test_kb_data.py` | ✅ |
 | A2 | Chunking strategy and justification | 5 | FR-2.1 | M2 | README "Chunking strategy", `src/smartdesk/kb/chunking.py`, `tests/test_kb_chunking.py` | ✅ |
-| A3 | Retrieval quality — relevant results for test queries | 5 | FR-2.2, FR-2.3 | M2, M3, M7 | `src/smartdesk/rag/retriever.py`, `tests/test_rag_retriever.py`, `python -m smartdesk.rag.calibrate` (dev Hit@1 0.976 / Recall@5 1.000; held-out Hit@1 0.857 / Recall@5 1.000); report in M7 | 🟡 |
-| A4 | LLM grounding — no hallucination | 5 | FR-2.4, NFR-1.3 | M3, M6, M7 | `src/smartdesk/rag/answer.py`, `tests/test_rag_answer.py`, `tests/test_workflow.py`; answers cite an expected doc 41/41 dev, 7/7 held-out (`data/eval/calibration_report.json`); M6 injection hardening: invented citations refused, passage delimiters stripped (`tests/test_guardrails.py`, live `test_live_instructions_inside_a_kb_passage_are_not_followed`); M7 report pending | 🟡 |
-| A5 | Confidence / escalation logic | 5 | FR-3.1, FR-3.2 | M3, M7 | threshold 0.35 + LLM sufficiency check, `python -m smartdesk.rag.calibrate` (escalation precision/recall 1.000/1.000 on dev and on held-out), README "Calibrating abstention"; ticket hand-off in M5 | 🟡 |
+| A3 | Retrieval quality — relevant results for test queries | 5 | FR-2.2, FR-2.3 | M2, M3, M7 | `src/smartdesk/rag/retriever.py`, `tests/test_rag_retriever.py`, `python -m smartdesk.rag.calibrate`: dev Recall@5 1.000 / Hit@1 0.976; held-out (32) Recall@5 0.917 domain-aware, 1.000 unfiltered; fresh subset 0.800 / 1.000 (`docs/evaluation-report.md`, K26) | ✅ |
+| A4 | LLM grounding — no hallucination | 5 | FR-2.4, NFR-1.3 | M3, M6, M7 | `src/smartdesk/rag/answer.py`, `tests/test_rag_answer.py`, `tests/test_workflow.py`; answers cite an expected doc 41/41 dev, 11/12 held-out (`docs/evaluation-report.md`); M6 injection hardening: invented citations refused, passage delimiters stripped (`tests/test_guardrails.py`, live `test_live_instructions_inside_a_kb_passage_are_not_followed`); no invented answer in any M7 run | ✅ |
+| A5 | Confidence / escalation logic | 5 | FR-3.1, FR-3.2 | M3, M7 | threshold 0.35 + LLM sufficiency check, `python -m smartdesk.rag.calibrate` (escalation precision/recall 1.000/1.000 on dev 63 and held-out 32, M7), README "Calibrating abstention"; ticket hand-off in M5; over-abstention case K24 | ✅ |
 
 ### B. Ticket Creation (Write Operation) — 20 marks
 
@@ -49,7 +49,7 @@ Last updated: Milestone 6.
 |---|---|---|---|---|---|---|
 | D1 | Correct intent detection and routing | 5 | §1.2, §5 step 15 | M1 → M5 | Flow-aware router in `graph/workflow.py`: `tests/test_workflow.py`, `tests/test_ticket_flow.py`, `tests/test_status_flow.py`, live `test_live_intent_classification`, `test_live_flow_aware_routing` | ✅ |
 | D2 | Smooth multi-turn conversations | 5 | NFR-2.1, NFR-2.2, §10 Q16 | M5 | SQLite checkpoints, email lock, intent switches with draft on hold: `test_knowledge_question_during_collection_puts_the_draft_on_hold`, `test_status_check_during_collection_keeps_the_draft`, `test_email_is_not_asked_again_later_in_the_session`, `test_pending_approval_survives_a_restart` | ✅ |
-| D3 | Out-of-scope / ambiguous query handling | 5 | NFR-1.2 | M1 → M5 | `out_of_scope` and `unclear` → clarify (`tests/test_workflow.py`); measured on the eval set in M7 | 🟡 |
+| D3 | Out-of-scope / ambiguous query handling | 5 | NFR-1.2 | M1 → M5 | `out_of_scope` and `unclear` → clarify (`tests/test_workflow.py`); M7: unclear first messages 8/8, out-of-scope 6/6 dev and 4/4 held-out; misses U9 (K25) and `ho-29` (K27), `docs/evaluation-report.md` | ✅ |
 
 ### E. Code Quality & Documentation — 15 marks
 

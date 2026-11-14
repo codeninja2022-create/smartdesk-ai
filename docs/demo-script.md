@@ -9,7 +9,10 @@ ticket status.
 - [ ] `.env` has `OPENAI_API_KEY` and the four `JIRA_*` variables; Langfuse optional.
 - [ ] The index is built: `python -m smartdesk.kb.ingest` reports 40 documents and a sample retrieval.
 - [ ] `pytest` passes.
-- [ ] Demo tickets prepared (section 1) and updated by the "support agent" (section 2).
+- [ ] Demo tickets prepared (section 1) and updated by the "support agent" (section 2). Already
+      created on 2026-11-14 during the M9 end-to-end check: Priya's KAN-20 (IT, monitor) and KAN-21
+      (HR, parking); section 2's Jira-UI update is still to do. Arjun's KAN-22 (printer) was created
+      by that check, so delete it or expect the recording to create a second printer ticket.
 - [ ] `chainlit run src/smartdesk/ui/app.py` is running; browser at http://localhost:8000, zoomed so
       the chat and the source panel are readable.
 - [ ] Jira board open in a second tab, to show a created ticket.
@@ -63,27 +66,31 @@ python -m smartdesk.tickets show KAN-<n> --email priya.sharma@novatech.example
 
 The output must show the new status and the agent's comment.
 
-## 3. Recording run sheet (about 4 minutes, Chainlit)
+## 3. Recording run sheet (about 5 minutes, Chainlit)
 
 The email is locked per session, so ticket creation (Arjun) and status checks (Priya, then Meera)
-each use their own chat: click **New Chat** where marked.
+each use their own chat: click **New Chat** where marked. Have a Langfuse tab open on the project's
+traces, and `docs/evaluation-report.md` open in a viewer, before you start.
 
-| Time | Flow | Type this | What to point out |
+| Time | Flow | Type this / do this | What to point out |
 |---|---|---|---|
 | 0:00 | Intro | — | Welcome message: what SmartDesk does; the session id |
 | 0:15 | **1. RAG answer** | `How do I connect to the VPN from my Mac at home?` | Grounded steps with `[n]` markers and a **Sources** list; click the `doc_id` to open the cited section |
-| 0:45 | Follow-up (multi-turn) | `And on Windows?` | Understood from context, again cited |
-| 1:05 | Escalation | `The printer on the 3rd floor is not working.` | Not in the KB (deliberate gap): says so, does not guess, offers a ticket |
-| 1:25 | **2. Ticket creation** | `yes please` | Ticket starts from the printer question; asks for the email |
-| 1:35 | | `arjun.mehta@novatech.example` | Category inferred (IT); full summary with **Approve / Edit / Cancel**; nothing is created yet |
+| 0:40 | Follow-up (multi-turn) | `And on Windows?` | Understood from context, again cited |
+| 0:55 | Escalation to a ticket offer | `Can I take a six-month sabbatical?` | HR question the KB deliberately does not cover: says it could not find it, does not guess, offers an HR ticket. Do not accept; the next request moves on |
+| 1:15 | Escalation (IT) | `The printer on the 3rd floor is not working.` | Another deliberate gap; IT ticket offered |
+| 1:30 | **2. Ticket creation** | `yes please` | Ticket starts from the printer question; asks for the email |
+| 1:40 | | `arjun.mehta@novatech.example` | Category inferred (IT); full summary with **Approve / Edit / Cancel**; nothing is created yet |
 | 1:55 | HITL edit | **Edit** → priority `High` → save | The summary updates; the earlier approval no longer applies |
-| 2:15 | Approve | **Approve** | Real Jira key and link; open it in the Jira tab (labels `smartdesk`, `sd-cat-it`) |
-| 2:40 | **3. Ticket status** | **New Chat**, then `What's the status of my tickets?` | Asks for the email |
-| 2:50 | | `priya.sharma@novatech.example` | Both prepared tickets listed, open first, as buttons |
-| 3:05 | | click the monitor ticket | Status **In Progress**, last update, link and the support agent's comment |
-| 3:30 | No tickets | **New Chat**, then `Any updates on my tickets? My email is meera.iyer@novatech.example` | Told clearly that no tickets were found, with an offer to raise one |
-| 3:50 | Out of scope | `What's the weather in Pune today?` | Politely declined, with what SmartDesk can do |
-| 4:05 | Close | — | Recap: answers only from the KB with sources, escalates honestly, never creates a ticket without approval, status for your own email only |
+| 2:10 | Approve | **Approve** | Real Jira key and link; open it in the Jira tab (labels `smartdesk`, `sd-cat-it`) |
+| 2:35 | **3. Ticket status** | **New Chat**, then `What's the status of my tickets?` | Asks for the email |
+| 2:45 | | `priya.sharma@novatech.example` | Both prepared tickets listed, open first, as buttons |
+| 2:55 | | click the monitor ticket | Status **In Progress**, last update, link and the support agent's comment |
+| 3:15 | No tickets | **New Chat**, then `Any updates on my tickets? My email is meera.iyer@novatech.example` | Told clearly that no tickets were found, with an offer to raise one |
+| 3:30 | Out of scope | `What's the weather in Pune today?` | Politely declined, with what SmartDesk can do |
+| 3:45 | **Observability** (~20 s) | Langfuse tab → open the trace of the VPN answer, then the ticket turn | One trace per turn: router, retrieval and answer steps with tokens, latency and cost; in the ticket turn the employee's address shows as `[REDACTED_EMAIL]` |
+| 4:10 | **Evaluation** (~20 s) | `docs/evaluation-report.md`, headline table | Dev 63/63 end to end, Recall@5 1.000, escalation precision/recall 1.000/1.000, citations 41/41; held-out (measured before fixes) 31/32, 10/11 on never-seen items; multi-turn 27/28; agent turn p50 1.9 s / p95 3.0 s; all eval runs cost $0.06 |
+| 4:35 | Close | — | Recap: answers only from the KB with sources, escalates honestly, never creates a ticket without approval, status for your own email only; known limitations in `docs/known-issues.md` |
 
 If an answer differs from the script (the LLM is not fully deterministic), keep recording unless a
 flow fails; the point is the behaviour, not exact wording.
@@ -93,7 +100,8 @@ flow fails; the point is the behaviour, not exact wording.
 Capture and annotate, in order: (1) the VPN answer with sources and the open source panel; (2) the
 escalation reply with the ticket offer; (3) the review summary with Approve / Edit / Cancel; (4) the
 confirmation with the Jira key and link; (5) the ticket in Jira; (6) Priya's two-ticket list;
-(7) the selected ticket's status and comment; (8) the no-tickets reply.
+(7) the selected ticket's status and comment; (8) the no-tickets reply; (9) a Langfuse trace with
+the redacted email; (10) the evaluation report's headline table.
 
 ### Shown by tests rather than on screen
 

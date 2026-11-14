@@ -169,6 +169,19 @@ def test_embedding_cache_calls_the_api_once_per_text_and_checks_the_budget_on_mi
     assert log.cache_hits == 1 and log.input_tokens > 0
 
 
+def test_reembedding_a_text_from_this_run_does_not_exclude_the_turn_but_a_prior_run_hit_does(tmp_path: Path):
+    log, timer = CallLog(None), Timer()
+    embed = CachedEmbedder(lambda text: [0.1], "text-embedding-3-small", log, path=tmp_path / "emb.db")
+    with timer.turn(log):
+        embed("vpn")  # miss
+        embed("vpn")  # same run: free, but not a warm cache
+    later = CachedEmbedder(lambda text: [0.1], "text-embedding-3-small", log, path=tmp_path / "emb.db")
+    with timer.turn(log):
+        later("vpn")  # a new run finds it already cached: warm
+    assert log.cache_hits == 2
+    assert timer.summary()["turns_timed"] == 1 and timer.summary()["turns_with_cache_hits_excluded"] == 1
+
+
 def test_percentile_uses_linear_interpolation_and_handles_no_values():
     assert percentile([1.0, 2.0, 3.0, 4.0], 50) == 2.5
     assert percentile([1.0, 2.0, 3.0, 4.0, 5.0], 95) == 4.8

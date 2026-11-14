@@ -94,17 +94,20 @@ class CallLog:
         self.spent_usd = prior_usd
         self.calls = 0
         self.cache_hits = 0
+        self.warm_hits = 0  # cache hits that make a turn faster than a cold one (excluded from latency)
         self.input_tokens = 0
         self.output_tokens = 0
         if path:
             path.parent.mkdir(parents=True, exist_ok=True)
 
     def record(self, *, kind: str, model: str, input_tokens: int, output_tokens: int, cached: bool,
-               latency_s: float | None) -> None:
+               latency_s: float | None, warm: bool = True) -> None:
+        """`warm=False` marks a free cache hit on a value computed earlier in this same run."""
         cost = 0.0 if cached else cost_usd(model, input_tokens, output_tokens)
         with self.lock:
             self.calls += 1
             self.cache_hits += cached
+            self.warm_hits += cached and warm
             if not cached:
                 self.spent_usd += cost
                 self.input_tokens += input_tokens
@@ -212,6 +215,7 @@ class CachedEmbedder:
                  path: Path = CACHE_DIR / "embeddings.db", before_call: Callable[[], None] | None = None) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         self.before_call = before_call  # e.g. CostTracker.check_budget
+        self.embedded_this_run: set[str] = set()
         self.embed_query_uncached = embed_query
         self.model = model
         self.log = log
@@ -226,8 +230,10 @@ class CachedEmbedder:
         with self.lock:
             row = self.conn.execute("SELECT vector FROM emb WHERE key = ?", (key,)).fetchone()
         if row:
+            # The same text embedded again in this run (e.g. calibrate's unfiltered retrieval) is free,
+            # but it is not a warm cache from an earlier run, so the turn still counts for latency.
             self.log.record(kind="embedding", model=self.model, input_tokens=tokens, output_tokens=0, cached=True,
-                            latency_s=None)
+                            latency_s=None, warm=key not in self.embedded_this_run)
             return json.loads(row[0])
         if self.before_call:
             self.before_call()
@@ -238,6 +244,7 @@ class CachedEmbedder:
         with self.lock:
             self.conn.execute("INSERT OR REPLACE INTO emb VALUES (?, ?)", (key, json.dumps(vector)))
             self.conn.commit()
+        self.embedded_this_run.add(key)
         return vector
 
 
@@ -250,10 +257,10 @@ class Timer:
 
     @contextmanager
     def turn(self, log: CallLog) -> Iterator[None]:
-        hits_before, started = log.cache_hits, time.perf_counter()
+        hits_before, started = log.warm_hits, time.perf_counter()
         yield
         elapsed = time.perf_counter() - started
-        if log.cache_hits > hits_before:
+        if log.warm_hits > hits_before:
             self.cached += 1
         else:
             self.uncached.append(elapsed)

@@ -19,3 +19,14 @@
 {"id": "ho-19", "category": "gap", "question": "My display flickers whenever I plug in the HDMI cable", "expected_doc_ids": [], "expected_behavior": "escalate", "gap_id": "monitor-flickering"}
 {"id": "ho-20", "category": "gap", "question": "Is there a company bus from Electronic City?", "expected_doc_ids": [], "expected_behavior": "escalate", "gap_id": "office-shuttle"}
 {"id": "ho-21", "category": "greeting", "question": "Thanks, that's all for today!", "expected_doc_ids": [], "expected_behavior": "greet"}
+{"id": "ho-22", "category": "answerable", "question": "I deleted a spreadsheet by mistake yesterday, can I get it back?", "expected_doc_ids": ["it-data-backup"], "expected_behavior": "answer"}
+{"id": "ho-23", "category": "answerable", "question": "My Teams mic is dead during calls, what should I check?", "expected_doc_ids": ["it-video-conferencing"], "expected_behavior": "answer"}
+{"id": "ho-24", "category": "answerable", "question": "Can I use my yearly training allowance for a cloud certification exam?", "expected_doc_ids": ["hr-learning-budget"], "expected_behavior": "answer"}
+{"id": "ho-25", "category": "answerable", "question": "I think my payslip deducted too much tax this month. Who do I tell?", "expected_doc_ids": ["pay-payslips"], "expected_behavior": "answer"}
+{"id": "ho-26", "category": "answerable", "question": "I'm leaving the company. Do I have to give back my laptop and when?", "expected_doc_ids": ["hr-resignation-exit"], "expected_behavior": "answer"}
+{"id": "ho-27", "category": "gap", "question": "The office printer shows paper jam but there is no paper stuck", "expected_doc_ids": [], "expected_behavior": "escalate", "gap_id": "printers"}
+{"id": "ho-28", "category": "gap", "question": "Does the company run any sabbatical or long unpaid study leave?", "expected_doc_ids": [], "expected_behavior": "escalate", "gap_id": "sabbatical"}
+{"id": "ho-29", "category": "gap", "question": "What is on the cafeteria menu this week?", "expected_doc_ids": [], "expected_behavior": "escalate", "gap_id": "cafeteria"}
+{"id": "ho-30", "category": "gap", "question": "Can I get reimbursed for a new ergonomic chair I bought for home?", "expected_doc_ids": [], "expected_behavior": "escalate", "gap_id": "unplanned:ergonomic-chair"}
+{"id": "ho-31", "category": "out_of_scope", "question": "Write me a poem about Mondays", "expected_doc_ids": [], "expected_behavior": "decline"}
+{"id": "ho-32", "category": "greeting", "question": "Good morning, hope you're doing well", "expected_doc_ids": [], "expected_behavior": "greet"}

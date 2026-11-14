@@ -119,17 +119,22 @@ indexed. There are two splits:
   `tests/test_kb_data.py` checks that the two splits share no ids or
   questions.
 
-| Category | Dev (63) | Held-out (21) | Expected behaviour |
+| Category | Dev (63) | Held-out (32) | Expected behaviour |
 |---|---|---|---|
-| `answerable` | 41 (at least one per KB document) | 7 paraphrases | answer, citing `expected_doc_ids` |
-| `gap` | 11 (every deliberate gap, with paraphrases) | 10: 7 deliberate gaps plus 3 `unplanned:` topics the KB does not cover | escalate (offer a ticket) |
-| `out_of_scope` | 6 (includes a prompt-injection attempt) | 3 (two injection-style) | decline politely |
-| `greeting` | 5 | 1 | greet |
+| `answerable` | 41 (at least one per KB document) | 12 (7 paraphrases, 5 added in M7) | answer, citing `expected_doc_ids` |
+| `gap` | 11 (every deliberate gap, with paraphrases) | 14: 9 deliberate gaps plus 5 `unplanned:` topics the KB does not cover | escalate (offer a ticket) |
+| `out_of_scope` | 6 (includes a prompt-injection attempt) | 4 (two injection-style) | decline politely |
+| `greeting` | 5 | 2 | greet |
 
 `gap-11` ("book movers…") began as a held-out question. It exposed a routing
 gap, and relocation was then added to the router's topic list. The question
 was therefore moved to dev and replaced in held-out with a fresh relocation
 question (`ho-13`), so no held-out item has influenced tuning.
+
+M7 added `ho-22` to `ho-32` (11 items) and froze the file: its SHA-256 is pinned
+in `data/eval/heldout/FROZEN.sha256` and `tests/test_eval_frozen.py` fails on any
+edit. `ho-01` to `ho-21` were already scored in M3, so the M7 report also gives
+the fresh `ho-22` to `ho-32` subset on its own.
 
 Answerable questions are deliberately phrased differently from the documents'
 own headings. One label was corrected after the first retrieval run: `ans-24`

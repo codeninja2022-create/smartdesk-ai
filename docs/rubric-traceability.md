@@ -48,16 +48,16 @@ Last updated: Milestone 6.
 | ID | Sub-criterion (verbatim) | Marks | Spec requirement | Milestone | Evidence | Status |
 |---|---|---|---|---|---|---|
 | D1 | Correct intent detection and routing | 5 | §1.2, §5 step 15 | M1 → M5 | Flow-aware router in `graph/workflow.py`: `tests/test_workflow.py`, `tests/test_ticket_flow.py`, `tests/test_status_flow.py`, live `test_live_intent_classification`, `test_live_flow_aware_routing` | ✅ |
-| D2 | Smooth multi-turn conversations | 5 | NFR-2.1, NFR-2.2, §10 Q16 | M5 | SQLite checkpoints, email lock, intent switches with draft on hold: `test_knowledge_question_during_collection_puts_the_draft_on_hold`, `test_status_check_during_collection_keeps_the_draft`, `test_email_is_not_asked_again_later_in_the_session`, `test_pending_approval_survives_a_restart` | ✅ |
+| D2 | Smooth multi-turn conversations | 5 | NFR-2.1, NFR-2.2, §10 Q16 | M5 | SQLite checkpoints, email lock, intent switches with draft on hold: `test_knowledge_question_during_collection_puts_the_draft_on_hold`, `test_status_check_during_collection_keeps_the_draft`, `test_email_is_not_asked_again_later_in_the_session`, `test_pending_approval_survives_a_restart`; M7 multi-turn eval 27/28 after the K23/K25 fixes (no-merge, carry-over, held drafts, follow-ups, back-references; `docs/evaluation-report.md`) | ✅ |
 | D3 | Out-of-scope / ambiguous query handling | 5 | NFR-1.2 | M1 → M5 | `out_of_scope` and `unclear` → clarify (`tests/test_workflow.py`); M7: unclear first messages 8/8, out-of-scope 6/6 dev and 4/4 held-out; misses U9 (K25) and `ho-29` (K27), `docs/evaluation-report.md` | ✅ |
 
 ### E. Code Quality & Documentation — 15 marks
 
 | ID | Sub-criterion (verbatim) | Marks | Spec requirement | Milestone | Evidence | Status |
 |---|---|---|---|---|---|---|
-| E1 | Clean, modular, readable code | 5 | NFR-4.1 | all | `src/smartdesk/` | 🟡 |
-| E2 | README with setup instructions | 5 | NFR-4.2, DEL-2 | M1 → M9 | `README.md` | 🟡 |
-| E3 | Architecture diagram | 5 | NFR-4.3, DEL-3 | M9 | README (Mermaid) | ⬜ |
+| E1 | Clean, modular, readable code | 5 | NFR-4.1 | all | `src/smartdesk/` (typed modules per concern, see README "Project layout"); `ruff check src tests` passes | ✅ |
+| E2 | README with setup instructions | 5 | NFR-4.2, DEL-2 | M1 → M9 | `README.md`: setup, environment variables, populating the KB, running (CLI, Chainlit), tests, evaluation, approach ("How it works"); `tests/test_docs.py` | ✅ |
+| E3 | Architecture diagram | 5 | NFR-4.3, DEL-3 | M9 | README "How it works": Mermaid component/data-flow diagram and LangGraph agent-flow diagram; `test_readme_has_the_architecture_and_agent_flow_diagrams` | ✅ |
 
 ### F. Error Handling & Robustness — 10 marks
 
@@ -164,10 +164,10 @@ Last updated: Milestone 6.
 
 | ID | Deliverable (verbatim) | Milestone | Status |
 |---|---|---|---|
-| DEL-1 | **GitHub Repository** — "Public or private repo (add evaluator as collaborator). Must include all source code, KB files, and configuration." | M9 | 🟡 |
-| DEL-2 | **README.md** — "Setup instructions, env var list, how to populate the KB, how to run the agent, and a brief description of your approach." | M9 | 🟡 |
-| DEL-3 | **Architecture Diagram** — "Visual diagram (image or Mermaid in README) showing components and data flow." | M9 | ⬜ |
-| DEL-4 | **Demo Video / Screenshots** — "3–5 min screen recording or annotated screenshots showing all three flows: RAG answer, ticket creation, ticket status." | M9 | ⬜ |
+| DEL-1 | **GitHub Repository** — "Public or private repo (add evaluator as collaborator). Must include all source code, KB files, and configuration." | M9 | 🟡 code, KB and config committed; adding the evaluator as collaborator is the author's step |
+| DEL-2 | **README.md** — "Setup instructions, env var list, how to populate the KB, how to run the agent, and a brief description of your approach." | M9 | ✅ `README.md` |
+| DEL-3 | **Architecture Diagram** — "Visual diagram (image or Mermaid in README) showing components and data flow." | M9 | ✅ README "How it works" (Mermaid) |
+| DEL-4 | **Demo Video / Screenshots** — "3–5 min screen recording or annotated screenshots showing all three flows: RAG answer, ticket creation, ticket status." | M9 | ⬜ run sheet ready in `docs/demo-script.md`; recording by the author |
 | DEL-5 | **Knowledge Base Files** — "Raw documents / Q&A pairs / JSON / CSV used as your knowledge base. Must be included in the repo." | M2 | ✅ `data/kb/` |
 
 ---

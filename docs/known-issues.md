@@ -4,7 +4,7 @@ Open limitations and planned work, one line each. Sources: `docs/decisions.md`,
 the README and the milestone reports. Remove a line only when its fix is
 merged and tested.
 
-Last updated: Milestone 7 evaluation (after M8).
+Last updated: Milestone 9.
 
 | # | Issue | Impact | Planned fix | When |
 |---|---|---|---|---|
@@ -18,7 +18,7 @@ Last updated: Milestone 7 evaluation (after M8).
 | K14 | A failure while handling a reply at review consumes that approval step (D6.4). | The employee sees the draft again and must approve again; nothing is created twice or without approval. | None planned; this is the safe behaviour. | — |
 | K15 | Redaction is pattern-based (emails, keys, tokens, phone and card numbers). | Names, addresses and free-text personal details in messages are not masked in traces. | Add an NER-based redactor if traces must be free of all personal data. | Post-submission |
 | K16 | Dense retrieval only; no hybrid search or re-ranking (optional bonus, needs approval). | Retrieval relies on embeddings alone; one held-out gap outscored answerable questions. | Hybrid search with a re-ranker, only with approval. | Post-submission |
-| K17 | Architecture diagram, demo script walkthrough and recording are not done yet. | Submission deliverables DEL-3 and DEL-4 are open. | Mermaid diagram in the README; 3–5 minute recording of the three flows. | M9 |
+| K17 | The demo recording (DEL-4) is not made yet; the architecture diagrams and the demo run sheet are done (M9). | Deliverable DEL-4 is open. | Record the 3–5 minute run sheet in `docs/demo-script.md`, or capture the listed screenshots. | M9 (author) |
 | K20 | All UI turns run on one worker thread, one at a time (D8.1). | Concurrent users queue behind each other's turns (a few seconds each); fine for the demo. | Per-thread SQLite connections in `TicketStore` and the checkpointer, then a multi-worker pool. | Post-submission |
 | K21 | No browser-side session resume: a page reload starts a new Chainlit session (D8.2). | The conversation stays in SQLite and resumes in the CLI (`--session`), not in the browser. | Chainlit data layer and authentication, mapping the Chainlit thread to the LangGraph thread_id. | Post-submission |
 | K22 | The Edit dialog relies on Chainlit's emitter: `on_edit` sends `task_end()` itself because Chainlit 2.12 does not after an action callback (D8.6). | A Chainlit upgrade could change this: buttons would stay disabled after an edit, or the fix become redundant. | Re-run the UI smoke check (Edit, then Approve) on every Chainlit upgrade; the version is pinned `<3`. | Post-submission |

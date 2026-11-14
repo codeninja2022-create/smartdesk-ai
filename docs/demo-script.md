@@ -1,8 +1,18 @@
 # Demo Script
 
-How to prepare and run the SmartDesk AI demo. The ticket sections are in
-place from Milestone 4. The conversational steps are completed in Milestone 5
-(approval flow) and Milestone 9 (final recording).
+How to prepare and record the SmartDesk AI demo (deliverable DEL-4): a 3–5 minute screen
+recording, or annotated screenshots, showing the three flows: RAG answer, ticket creation and
+ticket status.
+
+## 0. Pre-flight checklist
+
+- [ ] `.env` has `OPENAI_API_KEY` and the four `JIRA_*` variables; Langfuse optional.
+- [ ] The index is built: `python -m smartdesk.kb.ingest` reports 40 documents and a sample retrieval.
+- [ ] `pytest` passes.
+- [ ] Demo tickets prepared (section 1) and updated by the "support agent" (section 2).
+- [ ] `chainlit run src/smartdesk/ui/app.py` is running; browser at http://localhost:8000, zoomed so
+      the chat and the source panel are readable.
+- [ ] Jira board open in a second tab, to show a created ticket.
 
 ## Ground rule: who creates and who updates tickets
 
@@ -53,15 +63,44 @@ python -m smartdesk.tickets show KAN-<n> --email priya.sharma@novatech.example
 
 The output must show the new status and the agent's comment.
 
-## 3. Flows to show in the recording
+## 3. Recording run sheet (about 4 minutes, Chainlit)
 
-| # | Flow | What to show |
-|---|---|---|
-| 1 | RAG answer | An answerable IT or HR question, answered with source citations |
-| 2 | Escalation + ticket creation | A gap question → offer of a ticket → the collected fields → the approval summary → approve → the real ticket key and link *(M5)* |
-| 3 | Ticket status, multiple tickets | Priya asks "what's the status of my tickets?" → both tickets listed → she picks one → its status and the agent's comment *(M5)* |
-| 4 | Ticket status, no tickets | A second employee asks for status → told clearly that no tickets were found *(M5)* |
-| 5 | Duplicate protection | Approving the same ticket twice returns the same key *(M5)* |
+The email is locked per session, so ticket creation (Arjun) and status checks (Priya, then Meera)
+each use their own chat: click **New Chat** where marked.
+
+| Time | Flow | Type this | What to point out |
+|---|---|---|---|
+| 0:00 | Intro | — | Welcome message: what SmartDesk does; the session id |
+| 0:15 | **1. RAG answer** | `How do I connect to the VPN from my Mac at home?` | Grounded steps with `[n]` markers and a **Sources** list; click the `doc_id` to open the cited section |
+| 0:45 | Follow-up (multi-turn) | `And on Windows?` | Understood from context, again cited |
+| 1:05 | Escalation | `The printer on the 3rd floor is not working.` | Not in the KB (deliberate gap): says so, does not guess, offers a ticket |
+| 1:25 | **2. Ticket creation** | `yes please` | Ticket starts from the printer question; asks for the email |
+| 1:35 | | `arjun.mehta@novatech.example` | Category inferred (IT); full summary with **Approve / Edit / Cancel**; nothing is created yet |
+| 1:55 | HITL edit | **Edit** → priority `High` → save | The summary updates; the earlier approval no longer applies |
+| 2:15 | Approve | **Approve** | Real Jira key and link; open it in the Jira tab (labels `smartdesk`, `sd-cat-it`) |
+| 2:40 | **3. Ticket status** | **New Chat**, then `What's the status of my tickets?` | Asks for the email |
+| 2:50 | | `priya.sharma@novatech.example` | Both prepared tickets listed, open first, as buttons |
+| 3:05 | | click the monitor ticket | Status **In Progress**, last update, link and the support agent's comment |
+| 3:30 | No tickets | **New Chat**, then `Any updates on my tickets? My email is meera.iyer@novatech.example` | Told clearly that no tickets were found, with an offer to raise one |
+| 3:50 | Out of scope | `What's the weather in Pune today?` | Politely declined, with what SmartDesk can do |
+| 4:05 | Close | — | Recap: answers only from the KB with sources, escalates honestly, never creates a ticket without approval, status for your own email only |
+
+If an answer differs from the script (the LLM is not fully deterministic), keep recording unless a
+flow fails; the point is the behaviour, not exact wording.
+
+### Screenshot alternative
+
+Capture and annotate, in order: (1) the VPN answer with sources and the open source panel; (2) the
+escalation reply with the ticket offer; (3) the review summary with Approve / Edit / Cancel; (4) the
+confirmation with the Jira key and link; (5) the ticket in Jira; (6) Priya's two-ticket list;
+(7) the selected ticket's status and comment; (8) the no-tickets reply.
+
+### Shown by tests rather than on screen
+
+Duplicate protection (approving the same draft twice returns the same key) and approval-bypass
+attempts are hard to show in a UI, where the Approve button is bound to one draft. They are covered
+by `test_same_draft_again_in_the_session_reports_the_existing_ticket`,
+`tests/test_tickets_concurrency.py` and `tests/test_guardrails.py`.
 
 ## 4. Clean up after recording
 

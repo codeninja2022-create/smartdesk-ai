@@ -7,14 +7,14 @@ reports the status of tickets an employee has already raised.
 
 Built for the Interview Kickstart Applied Agentic AI capstone.
 
-> **Status: Milestone 4 (Jira integration).** The agent answers IT and HR
-> questions from the 40-document knowledge base with source citations, and
-> escalates (offers a ticket) when the knowledge base does not contain the
-> answer. A Jira ticket service (idempotent creation, lookup by employee email,
-> status and comments) is implemented and tested against the live project. The
-> conversational ticket and status flows with human approval arrive in
-> Milestone 5; until then the agent replies to ticket intents with placeholders,
-> and tickets can be created and inspected with `python -m smartdesk.tickets`.
+> **Status: feature-complete (Milestones 1–9); the demo recording is the remaining
+> deliverable.** Grounded answers with citations from a
+> 40-document knowledge base; honest escalation with a ticket offer when the
+> knowledge base cannot answer; Jira ticket creation only after the employee
+> approves the final draft (LangGraph `interrupt()`); ticket status lookups for
+> the session's email; a Chainlit UI and a CLI. Measured results are in
+> [docs/evaluation-report.md](docs/evaluation-report.md); known limitations in
+> [docs/known-issues.md](docs/known-issues.md).
 
 ## Tech stack
 
@@ -25,12 +25,68 @@ Built for the Interview Kickstart Applied Agentic AI capstone.
 | Embeddings | OpenAI `text-embedding-3-small` (configurable) |
 | Vector store | ChromaDB (local, persistent, cosine) |
 | Ticketing | Jira Cloud REST API v3 (httpx) |
-| Ticket mapping & idempotency | SQLite (checkpoints in M5) |
+| Ticket mapping, idempotency, conversation checkpoints | SQLite |
 | Observability | Langfuse, with sensitive-data redaction |
-| UI | Chainlit *(M8)* |
+| UI | Chainlit (and a CLI) |
 | Tests | pytest |
 
 Both models are hosted by OpenAI, so there are no local GPU or hardware requirements.
+
+## How it works
+
+SmartDesk is a **single LangGraph agent with deterministic routing**. Each employee message is
+classified once by an LLM router (intent, IT/HR domain, and a standalone search query for
+follow-ups); from there, plain Python nodes decide what happens. Knowledge questions go through
+retrieval-augmented generation: the answer step must quote its evidence from the retrieved passages
+and cite them, and anything it cannot support is escalated with an offer to raise a ticket, never
+guessed. Ticket creation is slot-filling (issue, email, IT/HR category) followed by a review step
+that pauses the graph with `interrupt()`; only an explicit approval of that exact draft reaches
+Jira, and a stable operation id prevents duplicates. Conversation state is checkpointed in SQLite,
+so a pending approval survives a restart. The employee's email is a demo identifier locked per
+session, not authentication.
+
+### Components and data flow
+
+```mermaid
+flowchart LR
+    emp([Employee]) -->|chat| ui["Chainlit UI / CLI"]
+    ui --> sess["ChatSession<br/>input guardrails"]
+    sess --> graph["LangGraph agent"]
+    graph -->|"router, answer, ticket fields"| llm["OpenAI gpt-4o-mini"]
+    graph -->|"query"| ret["Retriever"]
+    ret -->|"embed query"| emb["OpenAI text-embedding-3-small"]
+    ret -->|"top-5 chunks"| chroma[("ChromaDB<br/>KB chunks")]
+    graph -->|"approved draft, status lookups"| svc["Ticket service"]
+    svc -->|"REST v3"| jira["Jira Cloud"]
+    svc --> store[("SQLite<br/>ticket map, operation ids")]
+    graph --> ckpt[("SQLite<br/>checkpoints")]
+    graph -.->|"redacted traces"| lf["Langfuse"]
+    kb["data/kb/*.md<br/>40 documents"] -->|"ingest: chunk + embed"| chroma
+```
+
+### Agent flow (LangGraph)
+
+```mermaid
+flowchart TD
+    start([message]) --> classify["classify_intent<br/>flow-aware router"]
+    classify -->|knowledge_question| retrieve
+    retrieve -->|"top similarity >= 0.35"| answer["generate_answer<br/>evidence, citations"]
+    retrieve -->|"no chunks or low similarity"| escalate["escalate<br/>offer a ticket"]
+    answer -->|"insufficient or no valid citation"| escalate
+    answer -->|grounded| done1(["answer + sources"])
+    classify -->|"create_ticket / provide_info"| collect["collect_ticket<br/>issue, email, IT or HR"]
+    collect -->|"field missing"| ask([ask for it])
+    collect -->|complete| present[present_ticket]
+    present --> review{"review_ticket<br/>interrupt()"}
+    review -->|approve| submit["submit_ticket<br/>Jira, duplicate-safe"]
+    review -->|edit| present
+    review -->|cancel| done2([cancelled])
+    classify -->|ticket_status| status["check_status<br/>session email only"]
+    classify -->|"greeting / out_of_scope / unclear / cancel"| reply([fixed reply])
+```
+
+A new request in the middle of a flow is routed normally and the open ticket draft is kept on hold;
+asking for a ticket again offers to continue it or start a new one.
 
 ## Setup
 
@@ -166,8 +222,8 @@ question -> router (intent, IT/HR domain, standalone query for follow-ups)
   delimiters, with any look-alike tags inside them removed. The prompt treats
   them as data and ignores instructions found inside them.
 - **Escalation.** The agent says it could not find the answer, does not
-  guess, and offers to raise an IT or HR ticket. The ticket flow itself
-  arrives in Milestones 4–5.
+  guess, and offers to raise an IT or HR ticket ("yes please" starts the
+  ticket from that question).
 - **Follow-ups.** The first question is searched verbatim. On later turns the
   router's standalone rewrite is used, for example "what about on Mac?" after
   a VPN question.
@@ -183,11 +239,13 @@ Two evaluation splits are kept apart:
 - **Dev** (`data/eval/eval_set.jsonl`, 63 questions) is used for calibration.
   The threshold sweep and recommendation come only from this split, and the
   prompts were refined against it.
-- **Held-out** (`data/eval/heldout/eval_set.jsonl`, 21 questions) is **never
-  used for tuning**. It holds paraphrases, deliberate gap questions, topics the
-  KB happens not to cover (labelled `unplanned:<topic>`), injection-style
-  out-of-scope messages and a greeting. It is scored once, at the configured
-  threshold.
+- **Held-out** (`data/eval/heldout/eval_set.jsonl`, 32 questions, frozen by
+  hash) is **never used for tuning**. It holds paraphrases, deliberate gap
+  questions, topics the KB happens not to cover (labelled `unplanned:<topic>`),
+  injection-style out-of-scope messages and greetings. It was scored once, in
+  M7 (`data/eval/heldout/RUN.json`); the runner refuses a second run. Items
+  `ho-01`–`ho-21` were seen during M3–M6, so only `ho-22`–`ho-32` are a clean
+  estimate (`docs/data-sources.md`).
 
 Similarity scores are ranking scores, not probabilities, and answerable and
 gap questions overlap (dev: answerable top-1 0.40–0.75, gap 0.20–0.45;
@@ -196,19 +254,17 @@ cheap pre-filter, and the LLM's evidence-based sufficiency check makes the
 final decision. The threshold is set to the lowest dev answerable top-1 score
 (0.403) minus a 0.05 margin, which gives **0.35**.
 
-Results at `min_similarity = 0.35`. "End-to-end" means what the employee
-actually gets: routing first, then the RAG decision.
+Results at `min_similarity = 0.35` from the M7 evaluation (held-out measured once, before the two
+M7 fixes). "End-to-end" means what the employee actually gets: routing first, then the RAG decision.
 
-| | Dev (63) | Held-out (21) |
-|---|---|---|
-| Answerable → answered | 41/41 | 7/7 |
-| Gap → escalated (offers a ticket) | 11/11 (6 by threshold, 5 by LLM check) | 10/10 (5 by threshold, 5 by LLM check) |
-| Out of scope → declined | 6/6 | 3/3 |
-| Greeting → greeted | 5/5 | 1/1 |
-| Routing accuracy | 63/63 | 21/21 |
-| Escalation precision / recall (positive = gap) | 1.000 / 1.000 | 1.000 / 1.000 |
-| Answers citing an expected source document | 41/41 | 7/7 |
-| Retrieval Hit@1 / Recall@5 / MRR (domain-aware) | 0.976 / 1.000 / 0.988 | 0.857 / 1.000 / 0.929 |
+| | Dev (63) | Held-out, all (32) | Held-out, fresh only (11) |
+|---|---|---|---|
+| End-to-end correct | 63/63 | 31/32 | 10/11 |
+| Escalation precision / recall (positive = gap) | 1.000 / 1.000 | 1.000 / 1.000 | 1.000 / 1.000 |
+| Answers citing an expected source document | 41/41 | 11/12 | 4/5 |
+| Retrieval Recall@5 (domain-aware) | 1.000 | 0.917 | 0.800 |
+
+Full results, including multi-turn behaviour and latency: [docs/evaluation-report.md](docs/evaluation-report.md).
 
 On dev, any threshold from 0.20 to 0.40 gives the same combined result.
 Above 0.40 it starts escalating answerable questions. Per-question detail for
@@ -217,14 +273,13 @@ both splits, including every generated answer, is written to
 
 **Known limitations:**
 
-- **Small sets.** With 7 answerable and 10 gap items, the held-out results
-  are indicative, not statistically strong. A perfect score here does not
-  mean the agent never errs. The formal evaluation is in Milestone 7.
+- **Small sets.** With 12 answerable and 14 gap items (5 and 4 in the clean
+  fresh subset), the held-out results are indicative, not statistically strong.
 - **The threshold alone cannot separate gaps from answers.** One held-out gap
   (ho-02, Outlook password prompts, 0.45) scores above some answerable
   questions. It escalates only because of the LLM check, so both layers
   are needed.
-- **Fixes made in this milestone, all on dev evidence:**
+- **Fixes made in M3, all on dev evidence:**
   - Ethics, office facilities and relocation were added to the router's
     topic list.
   - The search query is used verbatim on the first turn.
@@ -234,10 +289,11 @@ both splits, including every generated answer, is written to
   - The relocation question that exposed the routing gap ("book movers…")
     was moved from held-out to dev (`gap-11`) and replaced with a fresh
     relocation question, so held-out stays untouched by tuning.
-- **Domain filter.** On both splits it neither helps nor hurts (identical
-  metrics). It is kept so IT and HR content with similar wording does not
-  compete, and the fallback to the whole KB means a wrong domain hint cannot
-  by itself cause an escalation.
+- **Domain filter.** On dev it neither helps nor hurts (identical metrics). It
+  is kept so IT and HR content with similar wording does not compete, and the
+  fallback to the whole KB means a wrong domain hint cannot by itself cause an
+  escalation. On held-out it cost one citation (`ho-26`, a question spanning IT
+  and HR; K26), which was deliberately not tuned against.
 
 ## Jira tickets
 
@@ -497,6 +553,25 @@ manual clean-up. Unit tests mock Jira with an in-memory fake
 $env:SMARTDESK_LIVE_TESTS = "1"; pytest -m jira_live   # live Jira only
 ```
 
+## Evaluation
+
+```powershell
+python -m smartdesk.rag.calibrate --split dev       # routing, retrieval, escalation, citations (63 questions)
+python -m smartdesk.eval.multiturn                  # scripted multi-turn conversations (data/eval/multiturn.jsonl)
+python -m smartdesk.eval.unclear                    # vague first messages and back-references (data/eval/unclear.jsonl)
+python -m smartdesk.rag.calibrate --split heldout   # once only: refused when data/eval/heldout/RUN.json exists
+python -m smartdesk.eval.coverage                   # table: rubric line -> tests (from @pytest.mark.rubric)
+```
+
+- Every check is deterministic (graph state: intent, citations, search query, ticket draft keywords,
+  approval and ticket counts); no LLM judges the output. Tickets go to an in-memory mock, never Jira.
+- A budget guard stops before cumulative OpenAI spend across runs could pass $10. LLM responses and
+  query embeddings are cached under `data/eval/.cache/`, so a repeated run is free; every call is
+  logged with tokens and cost in `data/eval/runs/<run>/calls.jsonl` (both git-ignored).
+- Latency p50/p95 is timed per turn with `time.perf_counter`, excluding turns served from cache.
+
+Results: [docs/evaluation-report.md](docs/evaluation-report.md).
+
 ## Observability and redaction
 
 When Langfuse keys are set, every LangGraph/LangChain run is traced through the
@@ -527,15 +602,19 @@ src/smartdesk/
   kb/                KB catalogue, fact sheet, generation (Step A), chunking,
                      ChromaDB ingestion (Step B) and retrieval evaluation
   ui/                Chainlit UI: app (handlers), render (what a turn shows)
+  eval/              M7 evaluation: harness (budget, caches, token log, timing), multi-turn and
+                     unclear runners, mock ticketing, rubric coverage table
   __main__.py        CLI entry point
 data/
   kb/                40 committed KB documents (Markdown + YAML front matter)
-  eval/              labelled evaluation set (never indexed) and calibration report
+  eval/              labelled dev set, frozen held-out set and its RUN.json, multi-turn and unclear
+                     cases (never indexed), calibration report
   kb_generation_report.json   statistics from the last generation run
 tests/               pytest suite
 docs/
   rubric-traceability.md   spec requirements -> implementation and evidence
-  demo-script.md           demo data rules and ticket walkthrough
+  demo-script.md           demo data and the recording walkthrough
+  evaluation-report.md     M7 results: metrics, latency, cost, rubric coverage
   decisions.md             agreed design decisions and deferred items
   known-issues.md          open limitations and future work
   specs/                   approved milestone plans

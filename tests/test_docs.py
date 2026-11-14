@@ -15,6 +15,19 @@ def test_readme_has_setup_and_run_instructions(heading: str):
     assert heading in HEADINGS
 
 
+@pytest.mark.rubric("E3")
+def test_readme_has_the_architecture_and_agent_flow_diagrams():
+    assert "How it works" in HEADINGS
+    diagrams = re.findall(r"```mermaid\n(.*?)```", README, re.S)
+    assert len(diagrams) == 2
+    components, flow = diagrams
+    for part in ("ChromaDB", "Jira", "SQLite", "Langfuse", "Chainlit"):
+        assert part in components
+    for node in ("classify_intent", "retrieve", "escalate", "review_ticket", "interrupt()", "submit_ticket",
+                 "check_status"):
+        assert node in flow
+
+
 @pytest.mark.rubric("A2")
 def test_readme_justifies_the_chunking_strategy():
     assert "Chunking strategy" in HEADINGS

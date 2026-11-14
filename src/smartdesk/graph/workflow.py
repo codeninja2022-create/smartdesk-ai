@@ -138,6 +138,10 @@ def _make_classify_node(llm: StructuredLLM, router_history_turns: int) -> Callab
             recent = recent_turns(state["messages"], router_history_turns)
             result = classifier.invoke([SystemMessage(content=prompts.INTENT_SYSTEM_PROMPT), *extra, *recent])
             assert isinstance(result, IntentClassification)
+            # An unclear reply to SmartDesk's own open question is no new request: keep the question
+            # open so the flow node asks it again, instead of a generic clarify that drops it (K23).
+            if awaiting and result.intent == Intent.UNCLEAR:
+                result = IntentClassification(intent=Intent.PROVIDE_INFO, domain=result.domain)
 
         # A rewrite only helps follow-ups; on the first question it can only drift.
         is_follow_up = sum(isinstance(m, HumanMessage) for m in state["messages"]) > 1

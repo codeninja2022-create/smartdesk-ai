@@ -304,9 +304,12 @@ def test_continue_resumes_the_held_draft(reply):
     assert service.create_calls == []
 
 
-def test_unclear_answer_to_the_held_draft_question_asks_again():
-    llm = ticket_llm({LAPTOP_TEXT: I.CREATE_TICKET, "hmm, not sure": I.PROVIDE_INFO}, {LAPTOP_TEXT: LAPTOP})
-    session = make_session(llm)
+@pytest.mark.rubric("D2", "M7-MULTI")
+@pytest.mark.parametrize("routed_as", [I.PROVIDE_INFO, I.UNCLEAR])  # K23: the live router said "unclear"
+def test_unclear_answer_to_the_held_draft_question_asks_again(routed_as):
+    llm = ticket_llm({LAPTOP_TEXT: I.CREATE_TICKET, "hmm, not sure": routed_as}, {LAPTOP_TEXT: LAPTOP})
+    service = FakeTicketService()
+    session = make_session(llm, service)
     hold_monitor_draft(session)
     session.send(LAPTOP_TEXT)
 
@@ -314,6 +317,23 @@ def test_unclear_answer_to_the_held_draft_question_asks_again():
     assert prompts.AWAITING_LABELS["held_draft"] in llm.calls[-1][1].content
     assert result.text == prompts.HELD_DRAFT_REASK + prompts.HELD_DRAFT_QUESTION.format(summary=MONITOR.summary)
     assert result.state["awaiting"] == "held_draft" and result.state["ticket_draft"] == STORED_DRAFT
+
+    # The open question survives, so "new" still starts the laptop ticket (the M7 C6 failure).
+    result = session.send("new")
+    assert result.state["ticket_draft"]["description"] == LAPTOP.description
+    assert service.create_calls == []
+
+
+@pytest.mark.rubric("D2", "M7-MULTI")
+def test_unclear_reply_while_issue_details_are_awaited_asks_for_them_again():
+    request = "I need to raise a ticket"
+    llm = ticket_llm({request: I.CREATE_TICKET, "hmm": I.UNCLEAR}, {})
+    session = make_session(llm)
+    assert session.send(request).state["awaiting"] == "ticket_details"
+
+    result = session.send("hmm")
+    assert result.text == prompts.ASK_TICKET_DETAILS
+    assert result.state["awaiting"] == "ticket_details" and not result.state["ticket_draft"]
 
 
 @pytest.mark.parametrize("unclear", [I.PROVIDE_INFO, I.CREATE_TICKET])

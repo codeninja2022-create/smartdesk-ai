@@ -32,12 +32,11 @@ UNCLEAR = Path("data/eval/unclear.jsonl")
 
 
 @pytest.mark.rubric("D2", "M7-MULTI")
-def test_multiturn_file_has_six_cases_of_each_type():
+def test_multiturn_file_has_six_cases_of_each_plan_type_and_the_k25_back_references():
     cases = load_cases(MULTITURN)
     counts = {kind: sum(c.type == kind for c in cases) for kind in {c.type for c in cases}}
-    assert sorted(counts) == ["A_unrelated_then_ticket", "B_ticket_for_it", "C_held_draft_new_request",
-                              "D_earlier_turn_follow_up"]
-    assert set(counts.values()) == {6}
+    assert counts == {"A_unrelated_then_ticket": 6, "B_ticket_for_it": 6, "C_held_draft_new_request": 6,
+                      "D_earlier_turn_follow_up": 6, "E_back_reference": 4}
     assert len({c.id for c in cases}) == len(cases)
 
 

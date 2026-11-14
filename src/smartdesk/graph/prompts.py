@@ -14,12 +14,15 @@ moving to another office or city, benefits, payroll, tax, stock options, and \
 office facilities such as parking, food or transport), including reports of \
 an IT or HR problem the employee wants help \
 with. Choose this even if you are not sure the knowledge base covers the \
-topic; a later step checks that.
+topic; a later step checks that. A reference back to an issue described \
+earlier in this conversation ("same issue as before", "it's happening \
+again") is about that issue: choose this, with a search_query that restates it.
 - create_ticket: the employee asks to raise, open or log a support ticket; \
 accepts a ticket SmartDesk just offered ("yes please"); or asks to continue \
 or retry a ticket that is in progress ("continue my ticket", "try again").
 - ticket_status: the employee asks about the status or updates of a ticket \
-they already raised.
+they already raised. A reference back to an earlier issue ("same issue as \
+before") is not a status request unless they ask about a ticket.
 - provide_info: the employee answers what SmartDesk just asked for (their \
 email address, details of the issue, IT or HR, which ticket they mean), or \
 adds to or corrects the ticket in progress ("make it high priority", "it's \

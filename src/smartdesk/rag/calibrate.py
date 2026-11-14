@@ -315,7 +315,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     names = ["dev", "heldout"] if args.split == "all" else [args.split]
 
-    if "heldout" in names and (reason := heldout_refusal(dirty=git_state()["dirty"])):
+    # The dev run rewrites the report file, so it does not count as an uncommitted change.
+    dirty = git_state(ignore=(REPORT_PATH.as_posix(),))["dirty"]
+    if "heldout" in names and (reason := heldout_refusal(dirty=dirty)):
         print(reason, file=sys.stderr)
         return 1
 

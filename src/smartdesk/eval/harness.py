@@ -272,11 +272,14 @@ def percentile(values: list[float], q: float) -> float | None:
     return round(float(np.percentile(values, q)), 3) if values else None
 
 
-def git_state() -> dict:
+def git_state(ignore: tuple[str, ...] = ()) -> dict:
+    """HEAD and whether the tree differs from it; `ignore` lists result files the runs themselves write."""
+
     def git(*args: str) -> str:
         return subprocess.run(["git", *args], capture_output=True, text=True, check=False).stdout.strip()
 
-    return {"sha": git("rev-parse", "HEAD"), "dirty": bool(git("status", "--porcelain"))}
+    excludes = [f":!{path}" for path in ignore]
+    return {"sha": git("rev-parse", "HEAD"), "dirty": bool(git("status", "--porcelain", "--", ".", *excludes))}
 
 
 def run_metadata(settings: Any, command: list[str]) -> dict:

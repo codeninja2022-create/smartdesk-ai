@@ -185,6 +185,25 @@ def test_timer_excludes_turns_that_hit_the_cache():
     assert summary["turns_timed"] == 1 and summary["turns_with_cache_hits_excluded"] == 1
 
 
+def test_git_state_can_ignore_result_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    import subprocess
+
+    def git(*args: str) -> None:
+        subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
+
+    git("init", "-q")
+    (tmp_path / "report.json").write_text("{}")
+    (tmp_path / "code.py").write_text("x = 1")
+    git("add", ".")
+    git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "init")
+    monkeypatch.chdir(tmp_path)
+    assert not harness.git_state()["dirty"]
+    (tmp_path / "report.json").write_text('{"dev": 1}')
+    assert harness.git_state()["dirty"] and not harness.git_state(ignore=("report.json",))["dirty"]
+    (tmp_path / "code.py").write_text("x = 2")
+    assert harness.git_state(ignore=("report.json",))["dirty"]
+
+
 def test_run_marker_is_written_whole(tmp_path: Path):
     marker = tmp_path / "RUN.json"
     write_run_marker(marker, {"sha": "abc", "items": [1, 2]})

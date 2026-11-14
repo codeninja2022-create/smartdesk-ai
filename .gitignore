@@ -1,10 +1,12 @@
 # Secrets (any .env variant, e.g. .env.txt; only the template is tracked)
-.env
-.env.*
+.env*
 !.env.example
 
 # Confidential course material
-docs/capstone-spec.pdf
+docs/*.pdf
+
+# Submission archive (built with git archive)
+smartdesk-ai.zip
 
 # Python
 .venv/

@@ -1,3 +1,6 @@
+🎥 Demo: <link>
+Repo: <link>
+
 # SmartDesk AI
 
 An IT & HR help desk agent for the fictional company NovaTech Solutions. It

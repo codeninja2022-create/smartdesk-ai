@@ -245,6 +245,23 @@ infrastructure) are listed by the command and map to no rubric line.
 - **U9 pass condition.** The draft check matches summary and description, slightly broader than the
   plan's "description"; U9 failed on routing, so this did not matter.
 
+## Commit SHAs after the history rewrite
+
+On 2026-11-14, after this evaluation, the repository history was rewritten with `git filter-repo`
+to remove two files committed by mistake on 2026-10-30 and deleted in the following commits: a
+copy of the environment file with a credential, and the confidential capstone specification. No
+other file changed, but every commit SHA did. The SHAs in this report are the ones recorded at run
+time; `data/eval/heldout/RUN.json` and the run logs keep them unchanged, as records.
+
+| SHA in this report (before rewrite) | Same commit after rewrite | Commit |
+|---|---|---|
+| `3913d99` | `ac8c20a` | M7 evaluation harness, runners, rubric coverage |
+| `4e3ac38` | `c0c3931` | Clean-tree check ignores the calibration report (dev run) |
+| `866f66d` | `dae8f3b` | Latency fix (multi-turn, unclear and held-out runs; `RUN.json`) |
+| `5a6c5fe` | `f008d12` | M7 results, held-out scored once |
+| `f35b55c` | `7a08b4f` | K23 and K25 fixes (post-fix reruns) |
+| `a23f1e1` | `877538e` | Post-fix results in this report |
+
 ## Findings
 
 None of them created a ticket without approval or produced an invented answer. Only findings that

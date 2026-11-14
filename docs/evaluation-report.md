@@ -6,22 +6,26 @@ re-typed by hand beyond copying these values. Method: `docs/specs/m7-plan.md`.
 
 ## Headline results
 
+Two fixes (K23, K25) were made after the first evaluation; see "After the fixes". The held-out set
+was **not** re-run after them, so every held-out number here is **measured before fixes**.
+
 | Area | Set | Result |
 |---|---|---|
-| End-to-end outcome (answer / escalate / decline / greet) | dev, 63 | 63/63 |
-| | held-out, 32 | 31/32 (miss: `ho-29`) |
+| End-to-end outcome (answer / escalate / decline / greet) | dev, 63 | 63/63 (before and after fixes) |
+| | held-out, 32, measured before fixes | 31/32 (miss: `ho-29`) |
 | Retrieval Recall@5 on answerable (agent's domain-aware retrieval) | dev, 41 | 1.000 (Hit@1 0.976, MRR 0.988) |
-| | held-out, 12 | 0.917 (Hit@1 0.833, MRR 0.875); unfiltered 1.000 |
+| | held-out, 12, measured before fixes | 0.917 (Hit@1 0.833, MRR 0.875); unfiltered 1.000 |
 | RAG escalation precision / recall (positive = gap) | dev | 1.000 / 1.000 (11/11 gap escalated, 0/41 answerable) |
-| | held-out | 1.000 / 1.000 (14/14 gap escalated, 0/12 answerable) |
+| | held-out, measured before fixes | 1.000 / 1.000 (14/14 gap escalated, 0/12 answerable) |
 | Answers citing an expected document | dev | 41/41 |
-| | held-out | 11/12 (miss: `ho-26`) |
-| Multi-turn cases (4 types × 6) | `multiturn.jsonl` | 22/24 |
-| Unclear first messages asking for clarification | U1–U8 | 8/8 |
-| "Same issue as before" resolved from history | U9 | 0/1 |
-| Out-of-scope declined | dev 6, held-out 4 | 6/6, 4/4 |
-| Agent turn latency (uncached), p50 / p95 | multi-turn, n=35 | 1.888 s / 3.031 s |
-| Total OpenAI spend, all four runs | — | $0.0422 of the $10 cap |
+| | held-out, measured before fixes | 11/12 (miss: `ho-26`) |
+| Multi-turn cases | before fixes: A–D, 24 cases | 22/24 |
+| | after fixes: A–D plus 4 back-reference cases (E) | 27/28 (miss: D5, K24) |
+| Unclear first messages asking for clarification | U1–U8, before fixes | 8/8 |
+| "Same issue as before" resolved from history | U9, before fixes | 0/1; after the K25 fix the same conversation (E1) passes |
+| Out-of-scope declined | dev 6, held-out 4 (before fixes) | 6/6, 4/4 |
+| Agent turn latency (uncached), p50 / p95 | multi-turn before fixes, n=35 | 1.888 s / 3.031 s |
+| Total OpenAI spend, all seven runs | — | $0.0583 of the $10 cap |
 
 ## Run metadata
 
@@ -56,6 +60,10 @@ how `sys.argv` appears under `python -m`.)
 | multiturn | 136 (67) | 51,578 / 2,339 | $0.0091 | $0.0309 | no |
 | unclear | 12 (0) | 8,936 / 282 | $0.0015 | $0.0324 | no |
 | calibrate held-out | 126 (32) | 56,425 / 2,366 | $0.0098 | $0.0422 | no |
+| *after the fixes (`f35b55c`):* | | | | | |
+| K25 dev cases before the prompt fix (E1–E4 only) | 18 (12) | — | $0.0008 | $0.0430 | no |
+| calibrate dev | 247 (184) | — | $0.0087 | $0.0517 | no |
+| multiturn (28 cases) | 156 (111) | — | $0.0066 | $0.0583 | no |
 
 Incomplete attempts: none. No run was stopped by the budget or crashed. The held-out set was
 scored once; a second `--split heldout` is refused because `RUN.json` exists (verified).
@@ -75,7 +83,11 @@ up, answerable questions start escalating (1/41 at 0.42, 5/41 at 0.50). The reco
 threshold is a pre-filter only; the LLM sufficiency check makes the final call, and the scores are
 treated as rankings, not probabilities.
 
-## Held-out set (scored once)
+## Held-out set (scored once, measured before fixes)
+
+These numbers were measured at `866f66d`, before the K23 and K25 fixes, and the set was not re-run
+afterwards (`RUN.json`, committed in `5a6c5fe`). The K25 change edits the router prompt, so routing
+on held-out questions after the fixes is unmeasured.
 
 The held-out set is not fully clean, and the numbers are split accordingly (`docs/data-sources.md`,
 m7-plan §2a): `ho-01`–`ho-21` were seen during M3–M6 and one failure among them influenced a router
@@ -120,7 +132,31 @@ Pass conditions were written into the case file before the run (keyword lists on
   although `hr-health-insurance` has an "Adding a New Dependant" section. A false escalation
   (over-abstention), not a hallucination.
 
-## Unclear and ambiguous messages (`data/eval/unclear.jsonl`)
+## After the fixes (dev and multi-turn only)
+
+Two findings touched graded behaviour (multi-turn context, rubric D2) and were fixed at `f35b55c`,
+each with a dev case written and seen failing first:
+
+- **K23**: when SmartDesk is waiting for an answer to its own question, an `unclear` reply now keeps
+  that question open and the flow asks it again (code change in `classify_intent`). Dev cases: two
+  offline ticket-flow tests reproducing C6 (both failed before the change), plus multi-turn C6.
+- **K25**: the router prompt now says a reference back to an issue described earlier in the
+  conversation is about that issue, and is not a status request unless the employee asks about a
+  ticket. Dev cases: new multi-turn type E (E1 "same issue as before", E2 "it's happening again",
+  E3 "I'm still having the same problem", E4 a real status request as a control). Before the change
+  E1 failed (routed `ticket_status`) and E2–E4 passed; after it all four pass.
+
+Reruns after the fixes, as agreed: dev calibration and multi-turn only (unclear and held-out were
+not re-run).
+
+| Run | Result |
+|---|---|
+| dev calibration | unchanged: 63/63 end to end, routing 63/63, Recall@5 1.000, escalation P/R 1.000/1.000, citations 41/41 |
+| multi-turn | A 6/6, B 6/6, **C 6/6** (C6 now passes), D 5/6 (D5 is K24, not fixed), **E 4/4** |
+
+Latency from the post-fix multi-turn run is not used: most turns were served from cache (n=13 timed).
+
+## Unclear and ambiguous messages (`data/eval/unclear.jsonl`, measured before fixes)
 
 | Case | Result |
 |---|---|
@@ -209,15 +245,16 @@ infrastructure) are listed by the command and map to no rubric line.
 - **U9 pass condition.** The draft check matches summary and description, slightly broader than the
   plan's "description"; U9 failed on routing, so this did not matter.
 
-## Findings for follow-up (not fixed in M7)
+## Findings
 
-Recorded in `docs/known-issues.md`. None of them created a ticket without approval or produced an
-invented answer.
+None of them created a ticket without approval or produced an invented answer. Only findings that
+hit graded behaviour (made-up answers, ticket without confirmation, missing mandatory field, status
+lookup, multi-turn context) were fixed; the rest stay in `docs/known-issues.md`.
 
-| # | Finding | Evidence |
-|---|---|---|
-| K23 | An unclear reply to "continue or new?" drops the open held-draft question | multi-turn C6 |
-| K24 | Over-abstention on a follow-up that the KB answers (adding a parent as a dependant) | multi-turn D5 |
-| K25 | "Same issue as before" after a knowledge question is routed to ticket status | unclear U9 |
-| K26 | The domain filter can exclude the right cross-domain document (IT routing for an HR exit question) | held-out `ho-26` |
-| K27 | A gap topic phrased as a facilities question was declined as out of scope instead of escalated | held-out `ho-29` |
+| # | Finding | Evidence | Rubric | Status |
+|---|---|---|---|---|
+| K23 | An unclear reply to "continue or new?" drops the open held-draft question | multi-turn C6 (1/6 C cases) | D2 | **fixed** `f35b55c`; C6 passes |
+| K24 | Over-abstention on a follow-up that the KB answers (adding a parent as a dependant) | multi-turn D5 (1/6 D cases) | A5 | open |
+| K25 | "Same issue as before" after a knowledge question is routed to ticket status | unclear U9 (1/1) | D2, D1 | **fixed** `f35b55c`; E1 passes |
+| K26 | The domain filter can exclude the right cross-domain document (IT routing for an HR exit question) | held-out `ho-26` (1/12 answerable) | A3 | open; found on held-out, deliberately not tuned against |
+| K27 | A workplace question with no KB entry was declined as out of scope instead of escalated | held-out `ho-29` (1/14 gap) | D3, A5 | open; found on held-out, deliberately not tuned against |

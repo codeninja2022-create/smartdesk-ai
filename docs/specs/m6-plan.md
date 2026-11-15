@@ -6,7 +6,7 @@ Approved 2026-11-01. Source of truth for M6 scope; changes need discussion first
 
 | # | Decision |
 |---|---|
-| 1 | Fallback model `gpt-4.1-mini`, subject to an access check with the IK key. **Result: 403 PermissionDenied ("project does not have access to model gpt-4.1-mini"), so M6 runs canned-reply-only.** `SMARTDESK_LLM_FALLBACK_MODEL` stays unset by default; the fallback path is implemented and tested with fakes. |
+| 1 | Fallback model `gpt-4.1-mini`, subject to an access check with the project's OpenAI key. **Result: 403 PermissionDenied ("project does not have access to model gpt-4.1-mini"), so M6 runs canned-reply-only.** `SMARTDESK_LLM_FALLBACK_MODEL` stays unset by default; the fallback path is implemented and tested with fakes. |
 | 2 | M6-1 uses one compare-and-set takeover at resume plus a heartbeat while the owner works (approved). The stale-pending timing is documented in `docs/decisions.md`. |
 | 3 | Input over 2000 characters is rejected with a reply, not truncated. |
 | 4 | Ticket creation is never retried by the LLM layer; it stays M4 reconcile-then-retry. |

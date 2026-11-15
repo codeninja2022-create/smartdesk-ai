@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     )
     llm_max_retries: int = Field(default=2, ge=0, le=10, validation_alias="SMARTDESK_LLM_MAX_RETRIES")
     # Used when the primary model keeps failing; same timeout and retries. Unset = canned reply only
-    # (gpt-4.1-mini was checked and is not available to the IK project).
+    # (gpt-4.1-mini was checked and is not available on the project's OpenAI key).
     llm_fallback_model: str | None = Field(default=None, validation_alias="SMARTDESK_LLM_FALLBACK_MODEL")
 
     # Conversation guardrails

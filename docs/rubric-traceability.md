@@ -1,8 +1,7 @@
 # Rubric Traceability
 
 Maps every graded requirement in the official capstone specification
-(*SmartDesk AI — An Intelligent IT & HR Operations Agent*, Interview Kickstart
-Applied Agentic AI Program) to where it is implemented and how it is verified.
+(*SmartDesk AI — An Intelligent IT & HR Operations Agent*) to where it is implemented and how it is verified.
 
 - Quoted text is copied verbatim from the specification. Section numbers (§)
   refer to the specification.
@@ -10,7 +9,7 @@ Applied Agentic AI Program) to where it is implemented and how it is verified.
 - **Evidence** points to code, tests and docs once they exist.
 - **Status:** ✅ done · 🟡 partial / foundation only · ⬜ not started.
 
-Last updated: Milestone 6.
+Last updated: Milestone 9 (final submission).
 
 ---
 
@@ -98,7 +97,7 @@ Last updated: Milestone 6.
 |---|---|---|---|
 | FR-2.1 | "You must build an indexing pipeline that ingests the documents and makes them searchable." | M2 | ✅ `python -m smartdesk.kb.ingest` |
 | FR-2.2 | "Your pipeline must include at least one of the following retrieval strategies (using more than one carries bonus marks): Dense vector search … Sparse keyword search … Hybrid search that combines dense and sparse retrieval with a re-ranker." — **Chosen: dense (OpenAI `text-embedding-3-small` + ChromaDB).** | M2, M3 | ✅ dense retrieval indexed |
-| FR-2.3 | "Regardless of strategy, you must demonstrate that the retrieval pipeline returns relevant chunks for a given query, and that the LLM uses these chunks to generate a grounded answer." | M2, M3, M7 | ✅ retrieval metrics + cited answers in `data/eval/calibration_report.json`; formal report M7 |
+| FR-2.3 | "Regardless of strategy, you must demonstrate that the retrieval pipeline returns relevant chunks for a given query, and that the LLM uses these chunks to generate a grounded answer." | M2, M3, M7 | ✅ retrieval metrics + cited answers in `data/eval/calibration_report.json` and `docs/evaluation-report.md` (A3, A4) |
 | FR-2.4 | "The agent must not hallucinate answers that are not present in the knowledge base." | M3, M6 | ✅ context-only prompt, evidence-first sufficiency check, citations validated against passages; injected passages cannot add sources (`test_instructions_in_a_kb_passage_cannot_add_passages_or_citations`) |
 
 ### FR-3 Confidence handling & escalation (§2.1.3)
@@ -106,7 +105,7 @@ Last updated: Milestone 6.
 | ID | Requirement (verbatim) | Milestone | Status |
 |---|---|---|---|
 | FR-3.1 | "Your agent must be able to determine when it does not know the answer." Suggested approaches: retrieval-score threshold, LLM self-assessment, no-retrieval fallback, or "A combination of the above with a human-in-the-loop confirmation before escalating." | M3 | ✅ no-retrieval fallback + calibrated score threshold + LLM self-assessment |
-| FR-3.2 | "When the agent determines it cannot answer, it must transition to the Ticket Creation flow described in Section 2.2." | M3, M5 | 🟡 conditional edge to `escalate`, which offers a ticket; ticket flow in M5 |
+| FR-3.2 | "When the agent determines it cannot answer, it must transition to the Ticket Creation flow described in Section 2.2." | M3, M5 | ✅ conditional edge to `escalate`, which offers a ticket; "yes" starts the ticket flow from the question (`test_accepting_an_escalation_offer_starts_a_ticket_from_the_question`, A5) |
 
 ### FR-4 Ticket creation (§2.2)
 
@@ -146,17 +145,17 @@ Last updated: Milestone 6.
 
 | ID | Requirement (verbatim) | Milestone | Status |
 |---|---|---|---|
-| NFR-1.1 | "The agent must maintain a polite, professional, and empathetic tone throughout." | M1 → M5 | 🟡 (canned replies) |
-| NFR-1.2 | "The agent must handle greetings, small talk, and out-of-scope questions gracefully." | M1 → M5 | 🟡 |
-| NFR-1.3 | "The agent must not hallucinate. If the KB does not contain the answer, the agent must acknowledge it." | M3, M6 | 🟡 escalation reply acknowledges the gap; gap questions escalated 11/11 dev, 10/10 held-out |
+| NFR-1.1 | "The agent must maintain a polite, professional, and empathetic tone throughout." | M1 → M5 | ✅ polite canned replies for greetings, clarification, escalation, errors and cancellations (`graph/prompts.py`) |
+| NFR-1.2 | "The agent must handle greetings, small talk, and out-of-scope questions gracefully." | M1 → M5 | ✅ greeting, `unclear` and `out_of_scope` handling (D3) |
+| NFR-1.3 | "The agent must not hallucinate. If the KB does not contain the answer, the agent must acknowledge it." | M3, M6 | ✅ escalation reply acknowledges the gap; gap questions escalated 11/11 dev, 10/10 held-out; ticket descriptions hold only what the employee said (K28) (A4, A5) |
 | NFR-2.1 | "The agent should remember context within a single session (e.g., do not re-ask for email)." | M5 | ✅ SQLite checkpoints per session; email not re-asked (D2) |
 | NFR-2.2 | "Multi-turn conversations must flow naturally without losing track of the topic." | M5 | ✅ intent switches keep the ticket draft on hold (D2) |
 | NFR-3.1 | "If the external API is unreachable, the agent must inform the employee politely and suggest trying again later." | M4, M6 | ✅ Jira and LLM outages get polite try-again replies (F1) |
 | NFR-3.2 | "If the LLM API call fails, the agent should have a retry mechanism or a graceful fallback." | M1 → M6 | ✅ retries with backoff, optional fallback model, canned reply (F2) |
 | NFR-3.3 | "All API keys and secrets must be stored in environment variables — never hard-coded." | M1 | ✅ |
-| NFR-4.1 | "Well-structured, modular, readable code with meaningful names." | all | 🟡 |
-| NFR-4.2 | "README.md with setup instructions, env var list, and run commands." | M1 → M9 | 🟡 |
-| NFR-4.3 | "Architecture diagram (hand-drawn, Mermaid, draw.io, or any format) showing components and data flow." | M9 | ⬜ |
+| NFR-4.1 | "Well-structured, modular, readable code with meaningful names." | all | ✅ (E1) |
+| NFR-4.2 | "README.md with setup instructions, env var list, and run commands." | M1 → M9 | ✅ (E2) |
+| NFR-4.3 | "Architecture diagram (hand-drawn, Mermaid, draw.io, or any format) showing components and data flow." | M9 | ✅ README "How it works" (E3) |
 
 ---
 
@@ -167,7 +166,7 @@ Last updated: Milestone 6.
 | DEL-1 | **GitHub Repository** — "Public or private repo (add evaluator as collaborator). Must include all source code, KB files, and configuration." | M9 | 🟡 code, KB and config committed; adding the evaluator as collaborator is the author's step |
 | DEL-2 | **README.md** — "Setup instructions, env var list, how to populate the KB, how to run the agent, and a brief description of your approach." | M9 | ✅ `README.md` |
 | DEL-3 | **Architecture Diagram** — "Visual diagram (image or Mermaid in README) showing components and data flow." | M9 | ✅ README "How it works" (Mermaid) |
-| DEL-4 | **Demo Video / Screenshots** — "3–5 min screen recording or annotated screenshots showing all three flows: RAG answer, ticket creation, ticket status." | M9 | ⬜ run sheet ready in `docs/demo-script.md`; recording by the author |
+| DEL-4 | **Demo Video / Screenshots** — "3–5 min screen recording or annotated screenshots showing all three flows: RAG answer, ticket creation, ticket status." | M9 | ✅ https://www.youtube.com/watch?v=uhXHEqrukGM (linked at the top of the README), recorded from the run sheet in `docs/demo-script.md` |
 | DEL-5 | **Knowledge Base Files** — "Raw documents / Q&A pairs / JSON / CSV used as your knowledge base. Must be included in the repo." | M2 | ✅ `data/kb/` |
 
 ---

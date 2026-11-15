@@ -8,10 +8,10 @@ answers employee questions from a curated knowledge base (RAG), escalates what
 it can't answer by raising a Jira ticket after explicit employee approval, and
 reports the status of tickets an employee has already raised.
 
-Built for the Interview Kickstart Applied Agentic AI capstone.
+Built as a capstone project.
 
-> **Status: feature-complete (Milestones 1–9); the demo recording is the remaining
-> deliverable.** Grounded answers with citations from a
+> **Status: complete (Milestones 1–9); the demo recording is linked above.**
+> Grounded answers with citations from a
 > 40-document knowledge base; honest escalation with a ticket offer when the
 > knowledge base cannot answer; Jira ticket creation only after the employee
 > approves the final draft (LangGraph `interrupt()`); ticket status lookups for
@@ -448,8 +448,8 @@ production system would take the identity from single sign-on instead.
   with exponential backoff that honours `Retry-After`. If a fallback model is
   configured it gets the same call next. Otherwise, or if it fails too, the
   employee gets a polite "please try again" reply, and the next message works
-  normally. `.env.example` sets `gpt-4o` as the fallback (available on the IK
-  key; `gpt-4.1-mini` is not).
+  normally. `.env.example` sets `gpt-4o` as the fallback (available on the project's
+  OpenAI key; `gpt-4.1-mini` is not).
 - **Any other failure in a turn** gets a safe reply; a ticket draft is kept and
   only the exception type is logged. A ticket is never created on the back of
   an approval given before a failure: the draft is shown for review again.

@@ -2,7 +2,7 @@
 
 ## Objective
 
-Build SmartDesk AI, an IT/HR help desk assistant, for the Interview Kickstart Applied Agentic AI capstone.
+Build SmartDesk AI, an IT/HR help desk assistant, for a capstone project.
 
 Read `docs/capstone-spec.pdf` before implementation. The official PDF is the source of truth for requirements and grading.
 
@@ -15,7 +15,7 @@ Implement one milestone at a time and stop for my approval.
 - Python 3.12
 - LangGraph for agent orchestration
 - OpenAI via `langchain-openai`
-- IK-provided `OPENAI_API_KEY`
+- Provided `OPENAI_API_KEY`
 - Default LLM: `gpt-4o-mini`
 - Embeddings: `text-embedding-3-small`
 - Hugging Face for public IT/HR datasets
@@ -26,7 +26,7 @@ Implement one milestone at a time and stop for my approval.
 - Chainlit for the user interface
 - pytest for testing
 
-Keep model names configurable. Verify model access using the IK key before implementation. If a configured model is unavailable, report it and ask before substituting another model.
+Keep model names configurable. Verify model access using the provided key before implementation. If a configured model is unavailable, report it and ask before substituting another model.
 
 Use Claude Code as the development assistant, but OpenAI as SmartDesk's runtime LLM.
 

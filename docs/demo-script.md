@@ -9,10 +9,10 @@ ticket status.
 - [ ] `.env` has `OPENAI_API_KEY` and the four `JIRA_*` variables; Langfuse optional.
 - [ ] The index is built: `python -m smartdesk.kb.ingest` reports 40 documents and a sample retrieval.
 - [ ] `pytest` passes.
-- [ ] Demo tickets prepared (section 1) and updated by the "support agent" (section 2). Already
-      created on 2026-11-14 during the M9 end-to-end check: Priya's KAN-20 (IT, monitor) and KAN-21
-      (HR, parking); section 2's Jira-UI update is still to do. Arjun's KAN-22 (printer) was created
-      by that check, so delete it or expect the recording to create a second printer ticket.
+- [x] Demo tickets prepared (section 1) and updated by the "support agent" (section 2): Priya's
+      KAN-20 (IT, monitor) is In Progress with the comment "Looking into this — replacement part
+      ordered."; KAN-21 (HR, parking) is in To Do with no comments. The end-to-end check's printer
+      tickets (KAN-22, KAN-23) were deleted on 2026-11-15, so the recording creates a fresh one.
 - [ ] `chainlit run src/smartdesk/ui/app.py` is running; browser at http://localhost:8000, zoomed so
       the chat and the source panel are readable.
 - [ ] Jira board open in a second tab, to show a created ticket.

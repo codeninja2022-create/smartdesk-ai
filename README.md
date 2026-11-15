@@ -1,5 +1,5 @@
-🎥 Demo: <link>
-Repo: <link>
+🎥 Demo: https://www.youtube.com/watch?v=uhXHEqrukGM
+Repo: https://github.com/codeninja2022-create/smartdesk-ai
 
 # SmartDesk AI
 
